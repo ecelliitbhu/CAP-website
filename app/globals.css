@@ -500,3 +500,647 @@ body{font-size:16px}
 .mission-flip-description{max-width:58ch;font-size:15px;font-weight:650;line-height:1.45;color:#f7f3e7;text-shadow:0 1px 3px #000,0 0 9px #fff,0 0 15px #c9aa5688}
 @media(max-width:640px){.mission-list{grid-template-columns:1fr;gap:25px;margin-top:10px}.mission-list li{padding:0}.mission-flip{height:96px}.mission-flip-face{padding:18px 28px}.mission-flip-title{font-size:20px}.mission-flip-description{font-size:13px}}
 @media(prefers-reduced-motion:reduce){.mission-flip-inner{transition:none}}
+
+/* ============================================================================
+   TYPOGRAPHY PASS  —  Playfair Display (display) + Manrope (body / UI)
+   ----------------------------------------------------------------------------
+   Appended last so it wins over the earlier override layers without editing
+   them. Both families are self-hosted by next/font (app/layout.tsx), which is
+   required because next.config.ts sets `font-src 'self' data:`.
+   Scope: text sizes, font families, weights, tracking, and button/bar styling.
+   No layout structure, colour palette, imagery or motion behaviour is changed.
+   ========================================================================== */
+
+:root{
+  --font-ui:var(--font-body),system-ui,-apple-system,"Segoe UI",sans-serif;
+  --font-serif:var(--font-display),Georgia,"Times New Roman",serif;
+  --font-serif-italic:var(--font-display-italic),Georgia,"Times New Roman",serif;
+  --gold-text:#dcba6d;
+  --gold-soft:#f0dcae;
+}
+
+/* ---------- base ---------- */
+
+body{
+  font-family:var(--font-ui);
+  font-size:15px;
+  line-height:1.65;
+  text-rendering:optimizeLegibility;
+}
+
+/* ---------- display tier ---------- */
+
+.hero h1,
+.section h2,
+.journey-title h2,
+.benefits-head h2,
+.benefits-title h2,
+.missions-head h2,
+.leaderboard-head h2,
+.faq-heading h2,
+.join-content h2{
+  font-family:var(--font-serif);
+  font-weight:700;
+  font-feature-settings:"kern" 1,"liga" 1,"dlig" 1;
+  letter-spacing:-.012em;
+  line-height:1.06;
+  text-shadow:none;
+  text-wrap:balance;
+}
+
+.hero h1{
+  font-size:clamp(42px,5.6vw,92px);
+  line-height:1.02;
+  letter-spacing:-.014em;
+  margin:30px 0 20px;
+  text-shadow:none;
+}
+
+.section h2,
+.about-intro h2,
+.benefits-head h2,
+.leaderboard-head h2,
+.faq-heading h2{
+  font-size:clamp(36px,4.4vw,68px);
+  line-height:1.06;
+  margin:0;
+}
+
+.journey-title h2{
+  font-size:clamp(34px,5vw,66px);
+  line-height:1.04;
+}
+
+.missions-head h2{
+  font-size:clamp(34px,5vw,64px);
+  line-height:1.04;
+}
+
+.benefits-title h2{
+  font-size:clamp(34px,4.4vw,62px);
+  line-height:1.08;
+}
+
+.join-content h2{
+  font-size:clamp(38px,4.6vw,70px);
+  line-height:1.04;
+}
+
+/* italic accent words — the "Is Assembled" treatment from the reference */
+.section h2 em,
+.about-intro h2 em,
+.journey-title h2 em,
+.benefits-head h2 em,
+.benefits-title h2 em,
+.missions-head h2 em,
+.leaderboard-head h2 em,
+.faq-heading h2 em,
+.join-content h2 em{
+  font-family:var(--font-serif-italic);
+  font-style:italic;
+  font-weight:500;
+  letter-spacing:0;
+  color:var(--gold-text);
+  text-shadow:none;
+}
+
+/* keep the question mark upright instead of the italic swash */
+.about-intro h2 .h2-mark{
+  font-family:var(--font-serif);
+  font-style:normal;
+  padding-left:.02em;
+}
+
+/* hero title: drop the hard offset shadow + stroke, keep a soft glow */
+.hero h1 .hero-title-line>.hero-title-accent{
+  color:var(--gold-text);
+  -webkit-text-stroke:0;
+  text-shadow:0 0 46px rgba(212,168,86,.22);
+}
+
+.hero h1 .hero-letter{text-shadow:none}
+
+/* ---------- hero copy ---------- */
+
+.eyebrow{
+  font-family:var(--font-ui);
+  font-size:11px;
+  font-weight:600;
+  letter-spacing:.2em;
+  color:#d2cab5;
+}
+
+.eyebrow-index{
+  font-family:var(--font-ui);
+  letter-spacing:.16em;
+  color:#8d8674;
+}
+
+.hero-tagline{
+  font-family:var(--font-ui);
+  font-weight:700;
+  font-size:12.5px;
+  letter-spacing:.28em;
+  color:#e9ddc2;
+}
+
+.hero-tagline i{color:var(--gold-text)}
+
+.hero-description{
+  font-family:var(--font-ui);
+  font-size:17.5px;
+  line-height:1.75;
+  letter-spacing:0;
+  color:#b9b2a0;
+  max-width:38ch;
+  margin:22px 0 30px;
+  text-wrap:pretty;
+}
+
+.hero-caption{
+  font-family:var(--font-ui);
+  font-size:11px;
+  font-weight:600;
+  letter-spacing:.16em;
+  color:#c6ba98;
+  margin-top:60px;
+}
+
+.caption-coordinate{
+  font-family:var(--font-ui);
+  font-size:10.5px;
+  letter-spacing:.16em;
+  color:#8d846c;
+  font-variant-numeric:tabular-nums;
+}
+
+.caption-mark{font-size:22px;color:var(--gold-text)}
+
+/* ---------- scroll to explore / hero footer ---------- */
+
+.hero-bottom{
+  font-family:var(--font-ui);
+  font-size:11.5px;
+  font-weight:600;
+  letter-spacing:.18em;
+  color:#b3a888;
+  border-top:1px solid rgba(220,186,109,.3);
+  padding-top:14px;
+  font-variant-numeric:tabular-nums;
+}
+
+.hero-bottom span:first-child{
+  font-size:12.5px;
+  letter-spacing:.22em;
+  color:var(--gold-soft);
+}
+
+.hero-bottom b{font-size:16px;margin-left:10px;color:var(--gold-text)}
+.hero-bottom i{color:var(--gold-text)}
+
+/* ---------- buttons ---------- */
+
+.button{
+  font-family:var(--font-ui);
+  font-weight:700;
+  font-size:11.5px;
+  line-height:1;
+  letter-spacing:.16em;
+  min-height:52px;
+  padding:0 26px;
+  border-radius:7px;
+  box-shadow:0 3px 14px rgba(0,0,0,.45);
+  transition:transform .18s ease,background .18s ease,box-shadow .18s ease,border-color .18s ease !important;
+}
+
+.button:hover{transform:translateY(-2px)}
+
+.button-primary{
+  border:1px solid #f3e2b6;
+  background:linear-gradient(180deg,#f2d795 0%,#e2bd6d 52%,#cda249 100%);
+  color:#191308;
+  box-shadow:0 3px 14px rgba(0,0,0,.42),inset 0 1px 0 rgba(255,255,255,.55);
+}
+
+.button-primary:hover{
+  background:linear-gradient(180deg,#fae6b4 0%,#ecce87 52%,#d9b45c 100%);
+  box-shadow:0 8px 22px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.65);
+}
+
+.button-ghost{
+  background:rgba(10,14,11,.45);
+  border:1px solid rgba(220,186,109,.6);
+  color:#f0e6cd;
+  box-shadow:0 3px 14px rgba(0,0,0,.35);
+}
+
+.button-ghost:hover{border-color:#ecd39a;background:rgba(220,186,109,.12)}
+.button-ghost>span{font-size:16px;margin-left:12px;color:var(--gold-text)}
+
+.text-link{
+  font-family:var(--font-ui);
+  font-weight:700;
+  font-size:11.5px;
+  letter-spacing:.14em;
+}
+
+.program-intro .text-link{
+  border:1px solid #f3e2b6;
+  border-radius:7px;
+  background:linear-gradient(180deg,#f2d795 0%,#e2bd6d 52%,#cda249 100%);
+  color:#191308;
+  box-shadow:0 3px 12px rgba(0,0,0,.4);
+}
+
+.program-intro .text-link:hover{
+  background:linear-gradient(180deg,#fae6b4 0%,#ecce87 52%,#d9b45c 100%);
+  border-color:#f7ecc9;
+  color:#191308;
+  box-shadow:0 6px 18px rgba(0,0,0,.45);
+}
+
+/* ---------- navigation + chrome ---------- */
+
+.main-nav>a{
+  font-family:var(--font-ui);
+  font-size:12.5px;
+  font-weight:600;
+  letter-spacing:.1em;
+  color:#d6cfbc;
+}
+
+.main-nav .nav-join{
+  font-family:var(--font-ui);
+  font-size:11.5px;
+  font-weight:700;
+  letter-spacing:.14em;
+  padding:14px 20px;
+  border-radius:7px;
+  box-shadow:0 3px 12px rgba(0,0,0,.4);
+}
+
+.announcement{
+  font-family:var(--font-ui);
+  font-size:10.5px;
+  font-weight:600;
+  letter-spacing:.16em;
+}
+
+.section-kicker{
+  font-family:var(--font-ui);
+  font-size:11px;
+  font-weight:600;
+  letter-spacing:.16em;
+  color:#c9bea0;
+}
+
+.section-kicker span:first-child{font-size:12.5px;letter-spacing:.12em}
+.section-kicker span:last-child{color:#b5aa8f}
+
+.overline{
+  font-family:var(--font-ui);
+  font-size:11.5px;
+  font-weight:700;
+  letter-spacing:.22em;
+  color:var(--gold-text);
+}
+
+.brand-name{
+  font-family:var(--font-ui);
+  font-size:14.5px;
+  font-weight:800;
+  letter-spacing:.05em;
+}
+
+.brand-sub{
+  font-family:var(--font-ui);
+  font-size:9.5px;
+  letter-spacing:.18em;
+}
+
+/* ---------- the gold signal bar ---------- */
+
+.signal-strip{
+  height:44px;
+  background:linear-gradient(90deg,#17110a 0%,#2b2110 18%,#483617 50%,#2a2010 82%,#15100a 100%);
+  border-top:1px solid rgba(220,186,109,.42);
+  border-bottom:1px solid rgba(220,186,109,.22);
+  box-shadow:inset 0 1px 0 rgba(240,220,174,.12),0 8px 26px rgba(0,0,0,.5);
+  color:var(--gold-soft);
+}
+
+.signal-track{
+  font-family:var(--font-ui);
+  font-size:11.5px;
+  font-weight:600;
+  letter-spacing:.3em;
+  gap:34px;
+  animation-duration:46s;
+}
+
+.signal-track span{color:var(--gold-soft)}
+.signal-track b{font-size:12px;color:var(--gold-text);opacity:.9}
+
+/* ---------- body copy ---------- */
+
+.program-intro p,
+.journey-title>p,
+.benefits-head>p,
+.benefits-title>p,
+.leaderboard-head>p,
+.faq-heading>p{
+  font-family:var(--font-ui);
+  font-size:17px;
+  line-height:1.75;
+  color:#b3ab99;
+}
+
+.benefits-intro{
+  font-family:var(--font-ui);
+  font-size:clamp(18px,1.75vw,22px);
+  line-height:1.62;
+  color:#ded6c4;
+}
+
+.intel-card>p:not(.overline){
+  font-family:var(--font-ui);
+  font-size:13.5px;
+  line-height:1.72;
+  color:#a49d8c;
+}
+
+.journey-step h3{font-family:var(--font-ui);font-size:16.5px}
+.journey-step p{font-family:var(--font-ui);font-size:12.5px;line-height:1.65;color:#a29b8a}
+
+.benefit-card h3{font-family:var(--font-ui);font-size:16.5px}
+.benefit-card p{font-family:var(--font-ui);font-size:12.5px;line-height:1.6;color:#a29b8a}
+
+.join-copy{
+  font-family:var(--font-ui);
+  font-size:14px;
+  line-height:1.8;
+  color:#b3ab99;
+}
+
+/* ---------- faq ---------- */
+
+.faq-tab{
+  font-family:var(--font-ui);
+  font-size:12px;
+  font-weight:600;
+  letter-spacing:.1em;
+}
+
+.faq-question{
+  font-family:var(--font-ui);
+  font-size:17px;
+  font-weight:600;
+  line-height:1.5;
+}
+
+.faq-answer p{
+  font-family:var(--font-ui);
+  font-size:16px;
+  line-height:1.8;
+  color:#b3ab99;
+}
+
+.faq-q-index{font-variant-numeric:tabular-nums}
+
+/* ---------- misc chrome ---------- */
+
+.leaderboard-columns{
+  font-family:var(--font-ui);
+  font-size:10.5px;
+  letter-spacing:.16em;
+  font-variant-numeric:tabular-nums;
+}
+
+.leaderboard-note{font-family:var(--font-ui);font-size:13px}
+.leaderboard-status{font-family:var(--font-ui);font-variant-numeric:tabular-nums}
+
+/* the intro paragraph was butting into "See your / progress." — bottom-align it
+   with a proper gutter so the two columns read as separate blocks */
+@media(min-width:641px){
+  .leaderboard-head{
+    align-items:end;
+    gap:clamp(28px,4vw,72px);
+  }
+  .leaderboard-head>div{max-width:560px}
+  .leaderboard-head>p{
+    max-width:44ch;
+    margin:0 0 6px;
+    text-align:left;
+    text-wrap:pretty;
+  }
+}
+
+.art-caption,
+.art-side-label{
+  font-family:var(--font-ui);
+  font-size:9.5px;
+  letter-spacing:.16em;
+}
+
+.art-stamp{font-family:var(--font-ui);font-size:8.5px;letter-spacing:.12em}
+.art-stamp strong{font-family:var(--font-serif);font-size:20px;font-weight:700}
+
+.entry-overline{
+  font-family:var(--font-ui);
+  font-size:10.5px;
+  font-weight:600;
+  letter-spacing:.28em;
+}
+
+.entry-brand{font-family:var(--font-ui);font-size:11px;letter-spacing:.2em}
+.entry-brand small{font-family:var(--font-ui);font-size:9px;letter-spacing:.2em}
+
+.entry-coordinate{
+  font-family:var(--font-ui);
+  font-size:10px;
+  letter-spacing:.2em;
+  font-variant-numeric:tabular-nums;
+}
+
+.entry-button-label{
+  font-family:var(--font-ui);
+  font-size:11px;
+  font-weight:600;
+  letter-spacing:.24em;
+}
+
+.mission-flip-title{
+  font-family:var(--font-serif);
+  font-size:clamp(21px,2.2vw,29px);
+  font-weight:600;
+  letter-spacing:.005em;
+  color:#f8efd6;
+  text-shadow:0 2px 4px rgba(0,0,0,.92),0 1px 2px rgba(0,0,0,.85);
+}
+
+.mission-flip-description{
+  font-family:var(--font-ui);
+  font-size:14px;
+  font-weight:500;
+  line-height:1.55;
+  color:#f7f3e7;
+  text-shadow:0 2px 5px rgba(0,0,0,.9);
+}
+
+.footer-top>p{font-family:var(--font-ui);font-size:13px}
+.footer-bottom{font-family:var(--font-ui);font-size:11px;letter-spacing:.14em}
+.back-top{font-family:var(--font-ui);font-size:11.5px;letter-spacing:.14em}
+
+/* ---------- benefit flip cards ---------- */
+
+.benefit-card-face h3{
+  font-family:var(--font-ui);
+  font-size:clamp(15px,1.2vw,19px);
+  font-weight:800;
+  line-height:1.28;
+}
+
+.benefit-card-number{
+  font-family:var(--font-ui);
+  font-size:10.5px;
+  letter-spacing:.14em;
+  font-variant-numeric:tabular-nums;
+}
+
+.benefit-card-back-mark{font-size:20px;color:var(--gold-text)}
+
+/* ---------- timeline + join panel labels (were 9px mono) ---------- */
+
+.timeline-heading{
+  font-family:var(--font-ui);
+  font-size:11.5px;
+  font-weight:600;
+  letter-spacing:.16em;
+}
+
+.timeline-stop strong{
+  font-family:var(--font-ui);
+  font-size:12.5px;
+  font-weight:700;
+  letter-spacing:.1em;
+}
+
+.timeline-stop small{
+  font-family:var(--font-ui);
+  font-size:10.5px;
+  letter-spacing:.12em;
+}
+
+.proof-callout p{
+  font-family:var(--font-ui);
+  font-size:12.5px;
+  line-height:1.7;
+}
+
+.proof-callout p strong{
+  font-family:var(--font-ui);
+  font-size:11px;
+  font-weight:700;
+  letter-spacing:.12em;
+}
+
+.join-panel>p:not(.overline){
+  font-family:var(--font-ui);
+  font-size:12.5px;
+  line-height:1.7;
+}
+
+.join-panel .overline{font-size:10px;letter-spacing:.2em}
+
+.leaderboard-empty p{font-family:var(--font-ui);font-size:13px}
+.leaderboard-status small{font-family:var(--font-ui);font-size:10px}
+
+.journey-stone-title{font-family:var(--font-ui);letter-spacing:.06em}
+.journey-stone-number{font-family:var(--font-ui);font-variant-numeric:tabular-nums}
+
+.journey-reveal-content p{
+  font-family:var(--font-ui);
+  font-size:13.5px;
+  line-height:1.7;
+}
+
+/* ---------- responsive ---------- */
+
+@media(max-width:900px){
+  .hero h1{font-size:clamp(38px,6.2vw,64px)}
+  .section h2,
+  .about-intro h2,
+  .benefits-head h2,
+  .leaderboard-head h2,
+  .faq-heading h2{font-size:clamp(32px,5.4vw,52px)}
+  .journey-title h2{font-size:clamp(30px,5.2vw,50px)}
+  .missions-head h2{font-size:clamp(30px,5.2vw,48px)}
+  .benefits-title h2{font-size:clamp(30px,5vw,48px)}
+  .join-content h2{font-size:clamp(34px,5.4vw,54px)}
+  .hero-description{font-size:16.5px;max-width:36ch}
+  .signal-strip{height:42px}
+}
+
+@media(max-width:640px){
+  .hero h1{font-size:clamp(34px,9.4vw,48px);margin:22px 0 14px;line-height:1.04}
+  .section h2,
+  .about-intro h2,
+  .benefits-head h2,
+  .leaderboard-head h2,
+  .faq-heading h2{font-size:clamp(28px,8.4vw,40px)}
+  .journey-title h2{font-size:clamp(26px,8vw,36px)}
+  .missions-head h2{font-size:clamp(22px,7vw,32px)}
+  .benefits-title h2{font-size:clamp(26px,7.8vw,36px)}
+  .join-content h2{font-size:clamp(28px,8.6vw,40px)}
+
+  .hero-description{font-size:15.5px;line-height:1.7;max-width:36ch;margin:18px 0 24px}
+  .hero-tagline{font-size:11px;letter-spacing:.22em}
+  .eyebrow{font-size:9.5px;letter-spacing:.16em}
+
+  .button{font-size:10px;min-height:46px;padding:0 15px;letter-spacing:.1em}
+  .main-nav>a{font-size:12px}
+  .main-nav .nav-join{font-size:12.5px;padding:15px 18px}
+
+  .timeline-stop strong{font-size:11px}
+  .timeline-stop small{font-size:9.5px}
+  .proof-callout p{font-size:11px}
+  .join-panel>p:not(.overline){font-size:11px}
+  .benefit-card-face h3{font-size:14px}
+  .journey-reveal-content p{font-size:12px}
+
+  .hero-bottom{font-size:9.5px;letter-spacing:.14em;padding-top:11px}
+  .hero-bottom span:first-child{font-size:10.5px;letter-spacing:.18em}
+  .hero-bottom b{font-size:13px;margin-left:7px}
+  .hero-caption{font-size:10px;margin-top:42px}
+  .caption-coordinate{font-size:9px}
+
+  .signal-strip{height:38px}
+  .signal-track{font-size:10px;letter-spacing:.24em;gap:22px;animation-duration:34s}
+  .signal-track b{font-size:11px}
+
+  .program-intro p,
+  .journey-title>p,
+  .benefits-head>p,
+  .benefits-title>p,
+  .leaderboard-head>p,
+  .faq-heading>p{font-size:15px}
+  .benefits-intro{font-size:16px}
+
+  .intel-card>p:not(.overline){font-size:12px}
+  .journey-step h3{font-size:14.5px}
+  .journey-step p{font-size:11px}
+  .benefit-card h3{font-size:14.5px}
+  .benefit-card p{font-size:11px}
+  .join-copy{font-size:12.5px}
+
+  .faq-question{font-size:15px}
+  .faq-answer p{font-size:14.5px}
+  .faq-tab{font-size:10.5px}
+
+  .section-kicker{font-size:10px}
+  .section-kicker span:first-child{font-size:10.5px}
+  .overline{font-size:10.5px}
+
+  .footer-bottom{font-size:9.5px}
+}
+
