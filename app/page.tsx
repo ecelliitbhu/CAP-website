@@ -546,7 +546,7 @@ export default function Home() {
         <div className="section-kicker"><span>01 / ABOUT THE PROGRAM</span><span>THE BASICS</span></div>
         <div className="program-layout about-intro">
           <p className="overline">CAMPUS AMBASSADOR PROGRAM</p>
-          <h2>What is <em>CAP?</em></h2>
+          <h2>What is <em>CAP<span className="h2-mark">?</span></em></h2>
           <div className="program-intro"><p>CAP is a student ambassador program that helps bring entrepreneurship activities to more college campuses. Ambassadors take part in outreach, create content, support events and complete quizzes. Participants can submit their work, receive feedback and track their progress.</p><a className="text-link" href="#journey">HOW THE PROGRAM WORKS <Arrow /></a></div>
         </div>
       </section>
