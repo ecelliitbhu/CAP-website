@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent } from "react";
+import type { FaqItem, LeaderboardResult, PublicContent } from "@/lib/repositories/types";
 
 const faqGroups = [
   { id: "about", label: "ABOUT CAP", questions: [
@@ -47,6 +48,41 @@ const benefits = [
   { icon: "merch", title: "Sponsor goodies and resources", copy: "Get goodies, merchandise and learning resources from sponsors." },
 ];
 
+type FaqGroup = { id: string; label: string; questions: [string, string][] };
+
+const FAQ_GROUP_ORDER = ["about", "benefits", "tasks", "points", "updates"] as const;
+
+const FAQ_GROUP_LABELS: Record<string, string> = {
+  about: "ABOUT CAP",
+  benefits: "BENEFITS",
+  tasks: "TIME & TASKS",
+  points: "POINTS & DEADLINES",
+  updates: "UPDATES & SUPPORT",
+};
+
+/** Groups CMS FAQs into the same shape the static fallback uses. */
+function groupFaqs(items: FaqItem[]): FaqGroup[] {
+  const byGroup = new Map<string, [string, string][]>();
+  for (const item of items) {
+    const bucket = byGroup.get(item.group) ?? [];
+    bucket.push([item.question, item.answer]);
+    byGroup.set(item.group, bucket);
+  }
+
+  const ordered: FaqGroup[] = [];
+  for (const id of FAQ_GROUP_ORDER) {
+    const questions = byGroup.get(id);
+    if (questions && questions.length > 0) {
+      ordered.push({ id, label: FAQ_GROUP_LABELS[id] ?? id.toUpperCase(), questions });
+      byGroup.delete(id);
+    }
+  }
+  for (const [id, questions] of byGroup) {
+    ordered.push({ id, label: FAQ_GROUP_LABELS[id] ?? id.toUpperCase(), questions });
+  }
+  return ordered;
+}
+
 function BenefitIcon({ name }: { name: string }) {
   const common = { fill: "none", stroke: "currentColor", strokeWidth: 3.5, strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
   return <svg className="benefit-icon-art" viewBox="0 0 96 96" aria-hidden="true" {...common}>
@@ -61,6 +97,25 @@ function BenefitIcon({ name }: { name: string }) {
     {name === "certificate" && <><rect x="12" y="17" width="72" height="56" rx="5"/><path d="M24 31h29m-29 11h29m-29 11h20"/><circle cx="66" cy="45" r="12"/><path d="m59 56-2 27 9-7 9 7-2-27"/></>}
     {name === "merch" && <><path d="m30 17 18 8 18-8 17 12-10 17-9-5v41H32V41l-9 5-10-17z"/><path d="m40 38 8 9 8-9M39 90h19"/></>}
   </svg>;
+}
+
+function BenefitCards() {
+  return <ul className="benefit-cards" aria-label="What you can gain from the program">
+    {benefits.map((benefit, index) => <li className="benefit-flip-card" key={benefit.title} tabIndex={0} aria-label={`${benefit.title}: ${benefit.copy}`}>
+      <div className="benefit-flip-inner">
+        <div className="benefit-card-face benefit-card-front">
+          <span className="benefit-card-number">{String(index + 1).padStart(2, "0")}</span>
+          <span className="benefit-card-icon"><BenefitIcon name={benefit.icon} /></span>
+          <h3>{benefit.title}</h3>
+        </div>
+        <div className="benefit-card-face benefit-card-back" aria-hidden="true">
+          <span className="benefit-card-back-mark">✳</span>
+          <h3>{benefit.title}</h3>
+          <p>{benefit.copy}</p>
+        </div>
+      </div>
+    </li>)}
+  </ul>;
 }
 
 
@@ -107,22 +162,11 @@ function HexMark() {
 }
 
 function ECellLogo() {
-  return <svg className="ecell-logo" viewBox="0 0 168 62" role="img" aria-label="E-Cell IIT BHU">
-    <g fill="currentColor">
-      <path d="M8 23 29 3l-1 10 10-3-2 8-17 3 3-9-8 11Z" />
-      <path d="M10 28h32v8H10zm-4 11h36v8H6zm-5 11h41v8H1z" />
-    </g>
-    <text x="48" y="39" fill="#eee8d9" fontFamily="Arial, Helvetica, sans-serif" fontSize="31" fontWeight="800" letterSpacing="-1.4">CELL</text>
-    <text x="50" y="57" fill="#c8ad68" fontFamily="Arial, Helvetica, sans-serif" fontSize="13" fontWeight="700" letterSpacing="2">IIT (BHU)</text>
-  </svg>;
+  return <Image src="/images/ecell-logo-theme.png" alt="E-Cell IIT (BHU)" width={149} height={60} className="ecell-logo" />;
 }
 
 function AssembleLetters({ text, delay = 0 }: { text: string; delay?: number }) {
   return <span aria-hidden="true">{Array.from(text).map((letter, index) => <span className="hero-letter" key={`${letter}-${index}`} style={{ animationDelay: `${delay + index * 38}ms` }}>{letter}</span>)}</span>;
-}
-
-function LaunchLetters({ text, delay = 0 }: { text: string; delay?: number }) {
-  return <span aria-hidden="true">{Array.from(text).map((letter, index) => <span className="hero-letter launch-letter" key={`${letter}-${index}`} style={{ animationDelay: `${delay + index * 58}ms` }}>{letter}</span>)}</span>;
 }
 
 export default function Home() {
@@ -136,13 +180,55 @@ export default function Home() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
   const hasEntered = entryPhase === "revealing" || entryPhase === "done";
+  const entryOpen = entryPhase !== "done";
   const [activeJourneyStep, setActiveJourneyStep] = useState<string | null>(null);
+  const [publicContent, setPublicContent] = useState<PublicContent | null>(null);
+  const [publicLeaderboard, setPublicLeaderboard] = useState<LeaderboardResult | null>(null);
   const faqRef = useRef<HTMLElement>(null);
   const worldtreeRef = useRef<HTMLDivElement>(null);
   const heroAssembledRef = useRef<HTMLSpanElement>(null);
   const dustCanvasRef = useRef<HTMLCanvasElement>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const lastRevealSoundAtRef = useRef(0);
+
+  // Public CMS content + leaderboard (falls back to the static copy below on failure).
+  useEffect(() => {
+    let cancelled = false;
+
+    void (async () => {
+      try {
+        const response = await fetch("/api/content/public");
+        if (!response.ok) return;
+        const data = (await response.json()) as PublicContent;
+        if (!cancelled) setPublicContent(data);
+      } catch {
+        // Static fallback stays in place.
+      }
+    })();
+
+    void (async () => {
+      try {
+        const response = await fetch("/api/leaderboard");
+        if (!response.ok) return;
+        const data = (await response.json()) as LeaderboardResult;
+        if (!cancelled) setPublicLeaderboard(data);
+      } catch {
+        // Leaderboard section keeps its static copy.
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const liveFaqGroups: FaqGroup[] =
+    publicContent && publicContent.faqs.length > 0 ? groupFaqs(publicContent.faqs) : (faqGroups as FaqGroup[]);
+
+  // Keep the active FAQ tab valid when CMS content changes.
+  const resolvedFaqGroupId = liveFaqGroups.some((group) => group.id === activeGroup)
+    ? activeGroup
+    : liveFaqGroups[0]?.id ?? activeGroup;
 
   // When audio completes and we transition to "revealing", wait for the entrance animation before marking "done"
   useEffect(() => {
@@ -155,6 +241,13 @@ export default function Home() {
 
   const enterExperience = async () => {
     if (entryPhase !== "intro") return;
+    const AudioContextConstructor = window.AudioContext;
+    if (AudioContextConstructor && !audioContextRef.current) {
+      audioContextRef.current = new AudioContextConstructor();
+    }
+    const audioCtx = audioContextRef.current;
+    if (audioCtx?.state === "suspended") void audioCtx.resume().catch(() => {});
+
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
       setGateMounted(false);
       setEntryPhase("done");
@@ -464,12 +557,11 @@ export default function Home() {
     faqRef.current?.querySelectorAll<HTMLButtonElement>(".faq-question")[next]?.focus();
   };
 
-  const currentGroup = faqGroups.find((group) => group.id === activeGroup)!;
+  const currentGroup = liveFaqGroups.find((group) => group.id === resolvedFaqGroupId) ?? liveFaqGroups[0] ?? faqGroups[0];
 
   return (
     <main className="site-shell">
       <canvas ref={dustCanvasRef} className="dust-particle-canvas" aria-hidden="true" />
-
       {/* Intro Audio Player: plays full 10.74s cinematic track with natural decay */}
       <audio
         ref={audioRef}
@@ -539,7 +631,7 @@ export default function Home() {
       >
       <div className="announcement"><span className="live-dot" /> INTEL UPDATE <span className="announcement-divider">/</span> THE NEXT GENERATION OF CAMPUS LEADERS STARTS HERE <a href="#about">DECRYPT <Arrow /></a></div>
       <header className="site-header">
-        <a className="brand header-brand" href="#top" aria-label="Campus Assembly, E-Cell IIT BHU"><ECellLogo /><span className="brand-divider" aria-hidden="true" /><HexMark /><span className="brand-name">CAMPUS<span>·</span> ASSEMBLY<span className="brand-sub">INITIATIVE  /  2026</span></span></a>
+        <a className="brand header-brand" href="#top" aria-label="Campus Assembly, E-Cell IIT BHU"><ECellLogo /><span className="brand-divider" aria-hidden="true" /><span className="brand-name">CAMPUS ASSEMBLY<span className="brand-sub">INITIATIVE  /  2026</span></span></a>
         <button className="menu-toggle" aria-label={menuOpen ? "Close navigation" : "Open navigation"} aria-expanded={menuOpen} onClick={() => setMenuOpen(!menuOpen)}>{menuOpen ? "×" : "☰"}</button>
         <nav className={menuOpen ? "main-nav nav-open" : "main-nav"} aria-label="Main navigation" onClick={() => setMenuOpen(false)}>
           <a href="#about">ABOUT CAP</a><a href="#journey">HOW IT WORKS</a><a href="#missions">WHAT YOU’LL DO</a><a href="#faq">FAQ</a>
@@ -552,7 +644,7 @@ export default function Home() {
         <div className="hero-orbit orbit-one" aria-hidden="true" /><div className="hero-orbit orbit-two" aria-hidden="true" />
         <div className="hero-copy">
           <div className="eyebrow"><span className="eyebrow-line" /> CAMPUS AMBASSADOR PROGRAM <span className="eyebrow-index">[ EARTH-616 / CAP ]</span></div>
-          <h1 aria-label="THE FUTURE IS ASSEMBLED"><span className="hero-title-line"><AssembleLetters text="THE FUTURE" /></span><span className="hero-title-line"><AssembleLetters text="IS" delay={380} /></span><span className="hero-title-line"><span className="hero-title-accent" ref={heroAssembledRef}><AssembleLetters text="ASSEMBLED" delay={455} /></span></span></h1>
+          <h1 aria-label="THE FUTURE IS ASSEMBLED"><span className="hero-title-line"><AssembleLetters text="THE FUTURE" /></span><span className="hero-title-line"><AssembleLetters text="IS" delay={380} /></span><span className="hero-title-line"><span className="hero-title-accent"><AssembleLetters text="ASSEMBLED" delay={455} /></span></span></h1>
           <p className="hero-tagline">CAMPUS AMBASSADOR PROGRAM</p>
           <p className="hero-description"><span className="hero-description-highlight">CAP helps students bring entrepreneurship activities to their campus through outreach, content, events and quizzes.</span></p>
           <div className="hero-actions"><a className="button button-primary" href="#join">APPLICATION DETAILS <Arrow diagonal /></a><a className="button button-ghost" href="#about">WHAT IS CAP? <span>↓</span></a></div>
@@ -561,7 +653,7 @@ export default function Home() {
         <div className="hero-bottom"><span>SCROLL TO EXPLORE <b>↓</b></span><span>NO. 001 <i>—</i> CAMPUS OPERATIONS</span><span>INDEPENDENT FAN INITIATIVE <i>✳</i></span></div>
       </section>
 
-      <div className="signal-strip"><div className="signal-track"><span>ONE CAMPUS AT A TIME</span><b>✳</b><span>IDEAS INTO ACTION</span><b>✳</b><span>YOUR WORLD NEEDS YOU</span><b>✳</b><span>ONE CAMPUS AT A TIME</span><b>✳</b><span>IDEAS INTO ACTION</span><b>✳</b><span>YOUR WORLD NEEDS YOU</span><b>✳</b></div></div>
+      <div className="signal-strip"><div className="signal-track"><div className="signal-group"><span>ONE CAMPUS AT A TIME</span><b>✳</b><span>IDEAS INTO ACTION</span><b>✳</b><span>YOUR WORLD NEEDS YOU</span><b>✳</b></div><div className="signal-group" aria-hidden="true"><span>ONE CAMPUS AT A TIME</span><b>✳</b><span>IDEAS INTO ACTION</span><b>✳</b><span>YOUR WORLD NEEDS YOU</span><b>✳</b></div></div></div>
 
       <section className="section program-section" id="about">
         <div className="section-kicker"><span>01 / ABOUT THE PROGRAM</span><span>THE BASICS</span></div>
@@ -575,7 +667,7 @@ export default function Home() {
       <section className="journey-section" id="journey">
         <div className="section journey-inner">
           <div className="section-kicker"><span>02 / HOW IT WORKS</span><span>YOUR PARTICIPATION</span></div>
-          <div className="journey-title"><div><p className="overline">FROM SIGN-UP TO SUBMISSION</p><h2>How CAP <em>works</em></h2></div><p>A simple overview of how participants take part. Application dates and selection details are still being confirmed.</p></div>
+          <div className="journey-title"><div><p className="overline">FROM SIGN-UP TO SUBMISSION</p><h2>How CAP <em>works</em></h2></div></div>
           <div className="journey-explorer" onMouseLeave={() => setActiveJourneyStep(null)}>
             <div className="journey-stones" role="group" aria-label="Steps in the CAP program" style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", position: "relative", marginTop: 34 }}>
               {journeySteps.map((step, index) => {
@@ -598,7 +690,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="section benefits-section" id="benefits"><div className="section-kicker"><span>03 / WHAT YOU CAN GAIN</span><span>SKILLS THROUGH PRACTICE</span></div><div className="benefits-title"><p className="overline">A CAMPUS ROLE. PRACTICAL EXPERIENCE.</p><h2>What&apos;s <em>in it</em><br />for you?</h2></div><p className="benefits-intro">Take part in entrepreneurship on your campus and get access to experiences, resources and recognition through CAP.</p><ul className="benefit-icons-grid">{benefits.map((benefit, index) => <li key={benefit.title}><span className="benefit-icon-number">0{index + 1}</span><span className="benefit-icon-halo"><BenefitIcon name={benefit.icon} /></span><h3>{benefit.title}</h3><p>{benefit.copy}</p></li>)}</ul></section>
+      <section className="section benefits-section" id="benefits"><div className="section-kicker"><span>03 / WHAT YOU CAN GAIN</span><span>SKILLS THROUGH PRACTICE</span></div><div className="benefits-title"><p className="overline">A CAMPUS ROLE. PRACTICAL EXPERIENCE.</p><h2>What&apos;s <em>in it</em><br />for you?</h2></div><p className="benefits-intro">Take part in entrepreneurship on your campus and get access to experiences, resources and recognition through CAP.</p><BenefitCards /></section>
 
       <section className="missions-section" id="missions"><div className="section missions-inner"><div className="section-kicker"><span>04 / PROGRAM TASKS</span><span>WHAT PARTICIPANTS DO</span></div><div className="missions-head"><div><p className="overline">TYPICAL TASK AREAS</p><h2>Ways to <em>take part.</em></h2></div></div><ul className="mission-list">
         <li><button className="mission-flip" type="button" aria-label="Campus outreach. Help students hear about entrepreneurship activities, competitions and events."><span className="mission-flip-inner" aria-hidden="true"><span className="mission-flip-face mission-flip-front"><span className="mission-flip-title">Campus outreach</span></span><span className="mission-flip-face mission-flip-back"><span className="mission-flip-description">Help students hear about entrepreneurship activities, competitions and events.</span></span></span></button></li>
@@ -607,9 +699,9 @@ export default function Home() {
         <li><button className="mission-flip" type="button" aria-label="Quizzes and submissions. Complete in-site quizzes and submit task evidence through a public Drive link."><span className="mission-flip-inner" aria-hidden="true"><span className="mission-flip-face mission-flip-front"><span className="mission-flip-title">Quizzes and submissions</span></span><span className="mission-flip-face mission-flip-back"><span className="mission-flip-description">Complete in-site quizzes and submit task evidence through a public Drive link.</span></span></span></button></li>
       </ul><p className="program-note">The exact task schedule, deadlines and scoring rules will be shared before tasks begin.</p></div></section>
 
-      <section className="section leaderboard-section" id="leaderboard"><div className="section-kicker"><span>05 / PROGRESS AND RANKINGS</span><span>HOW POINTS WORK</span></div><div className="leaderboard-head"><div><p className="overline">TRACK YOUR PARTICIPATION</p><h2>See your<br /><em>progress.</em></h2></div><p>Reviewers score task submissions up to the points available for each task. Your final points determine your place on the leaderboard. The first rankings will appear when missions begin.</p></div><p className="leaderboard-note">Participants can see their own submission status and feedback. Public rankings display only the information shared with participants.</p></section>
+      <section className="section leaderboard-section" id="leaderboard"><div className="section-kicker"><span>05 / PROGRESS AND RANKINGS</span><span>HOW POINTS WORK</span></div><div className="leaderboard-head"><div><p className="overline">TRACK YOUR PARTICIPATION</p><h2>See your<br /><em>progress.</em></h2></div><p>Reviewers score task submissions up to the points available for each task. Your final points determine your place on the leaderboard. The first rankings will appear when missions begin.</p></div><p className="leaderboard-note">Participants can see their own submission status and feedback. Public rankings display only the information shared with participants.</p>{publicLeaderboard && publicLeaderboard.entries.length > 0 ? <div style={{ marginTop: 22, border: "1px solid #2c3a45", borderRadius: 10, overflow: "hidden", background: "#0d151b" }}><div style={{ display: "flex", justifyContent: "space-between", padding: "11px 16px", borderBottom: "1px solid #22303a", font: "700 10px/1 monospace", letterSpacing: ".14em", color: "#9fb0bd" }}><span>LIVE RANKINGS</span><span>{publicLeaderboard.state.status.toUpperCase()}</span></div><ol style={{ listStyle: "none", margin: 0, padding: 0 }}>{publicLeaderboard.entries.slice(0, 5).map((entry) => <li key={entry.participantId} style={{ display: "grid", gridTemplateColumns: "48px minmax(0,1fr) auto", gap: 12, alignItems: "center", padding: "10px 16px", borderBottom: "1px solid #1b2730", color: "#d8d1c1", fontSize: 14 }}><span style={{ font: "700 12px/1 monospace", color: "#d3ba70" }}>#{entry.rank}</span><span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{entry.name}<small style={{ display: "block", color: "#8d9aa5", fontSize: 11 }}>{entry.college}</small></span><b style={{ color: "#b9f267", font: "700 13px/1 monospace" }}>{entry.totalPoints} pts</b></li>)}</ol></div> : null}</section>
 
-      <section className="faq-section" id="faq" ref={faqRef}><div className="section"><div className="section-kicker"><span>06 / FIELD INTEL</span><span>18 QUESTIONS / 05 CHANNELS</span></div><div className="faq-heading"><div><p className="overline">BEFORE YOU SUIT UP</p><h2>GOOD QUESTIONS.<br /><em>STRAIGHT ANSWERS.</em></h2></div><p>Clarity is a superpower. Find the signal before you join the mission.</p></div><div className="faq-layout"><div className="faq-tabs" role="tablist" aria-label="FAQ categories">{faqGroups.map((group, index) => <button className={activeGroup === group.id ? "faq-tab active" : "faq-tab"} role="tab" aria-selected={activeGroup === group.id} aria-controls="faq-panel" id={`tab-${group.id}`} onClick={() => {setActiveGroup(group.id); setOpenQuestions([`${group.id}-0`]);}} key={group.id}><span>0{index + 1}</span>{group.label}<Arrow /></button>)}</div><div className="faq-panel" id="faq-panel" role="tabpanel" aria-labelledby={`tab-${currentGroup.id}`}>{currentGroup.questions.map(([question, answer], index) => {const key = `${currentGroup.id}-${index}`; const isOpen = openQuestions.includes(key); return <article className={isOpen ? "faq-item faq-open" : "faq-item"} id={`faq-${currentGroup.id}-${index + 1}`} key={key}><button className="faq-question" id={`question-${key}`} aria-expanded={isOpen} aria-controls={`answer-${key}`} onClick={() => toggleQuestion(key)} onKeyDown={(event) => moveFaqFocus(event, index, currentGroup.questions.length)}><span className="faq-q-index">Q{String(faqGroups.flatMap((item) => item.questions).findIndex((item) => item[0] === question) + 1).padStart(2, "0")}</span><span>{question}</span><span className="faq-plus" aria-hidden="true">{isOpen ? "−" : "+"}</span></button><div className="faq-answer" id={`answer-${key}`} role="region" aria-labelledby={`question-${key}`} hidden={!isOpen}><p>{answer}</p></div></article>;})}</div></div></div></section>
+      <section className="faq-section" id="faq" ref={faqRef}><div className="section"><div className="section-kicker"><span>06 / FIELD INTEL</span><span>{String(liveFaqGroups.reduce((total, group) => total + group.questions.length, 0))} QUESTIONS / {String(liveFaqGroups.length).padStart(2, "0")} CHANNELS</span></div><div className="faq-heading"><div><p className="overline">BEFORE YOU SUIT UP</p><h2>GOOD QUESTIONS.<br /><em>STRAIGHT ANSWERS.</em></h2></div><p>Clarity is a superpower. Find the signal before you join the mission.</p></div><div className="faq-layout"><div className="faq-tabs" role="tablist" aria-label="FAQ categories">{liveFaqGroups.map((group, index) => <button className={currentGroup.id === group.id ? "faq-tab active" : "faq-tab"} role="tab" aria-selected={currentGroup.id === group.id} aria-controls="faq-panel" id={`tab-${group.id}`} onClick={() => {setActiveGroup(group.id); setOpenQuestions([`${group.id}-0`]);}} key={group.id}><span>0{index + 1}</span>{group.label}<Arrow /></button>)}</div><div className="faq-panel" id="faq-panel" role="tabpanel" aria-labelledby={`tab-${currentGroup.id}`}>{currentGroup.questions.map(([question, answer], index) => {const key = `${currentGroup.id}-${index}`; const isOpen = openQuestions.includes(key); return <article className={isOpen ? "faq-item faq-open" : "faq-item"} id={`faq-${currentGroup.id}-${index + 1}`} key={key}><button className="faq-question" id={`question-${key}`} aria-expanded={isOpen} aria-controls={`answer-${key}`} onClick={() => toggleQuestion(key)} onKeyDown={(event) => moveFaqFocus(event, index, currentGroup.questions.length)}><span className="faq-q-index">Q{String(liveFaqGroups.flatMap((item) => item.questions).findIndex((item) => item[0] === question) + 1).padStart(2, "0")}</span><span>{question}</span><span className="faq-plus" aria-hidden="true">{isOpen ? "−" : "+"}</span></button><div className="faq-answer" id={`answer-${key}`} role="region" aria-labelledby={`question-${key}`} hidden={!isOpen}><p>{answer}</p></div></article>;})}</div></div></div></section>
 
       <section className="join-section" id="join"><div className="section join-inner"><div className="section-kicker"><span>07 / APPLICATIONS</span><span>DETAILS TO BE ANNOUNCED</span></div><div className="join-content"><div><p className="overline">INTERESTED IN JOINING?</p><h2>Applications<br /><em>coming soon.</em></h2><p className="join-copy">Eligibility, dates and application instructions will be published here once confirmed.</p><a className="button button-primary" href="#about">REVIEW THE PROGRAM <Arrow /></a></div><div className="application-details"><h3>Before applications open</h3><p>We’ll share eligibility, time commitment, program dates, selection steps and any confirmed benefits here.</p><a className="text-link" href="#faq">READ COMMON QUESTIONS <Arrow /></a></div></div></div></section>
 
