@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent } from "react";
+import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import type { FaqItem, LeaderboardResult, PublicContent } from "@/lib/repositories/types";
 
 const faqGroups = [
@@ -173,8 +173,13 @@ export default function Home() {
   const [activeGroup, setActiveGroup] = useState("about");
   const [openQuestions, setOpenQuestions] = useState<string[]>(["about-0"]);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [entryPhase, setEntryPhase] = useState<"intro" | "ignition" | "fracture" | "done">("intro");
-  const entryOpen = entryPhase !== "done";
+  type EntryPhase = "intro" | "playing" | "landed" | "revealing" | "done";
+  const [entryPhase, setEntryPhase] = useState<EntryPhase>("intro");
+  const [gateMounted, setGateMounted] = useState(true);
+  const [gateLeaving, setGateLeaving] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const hasEntered = entryPhase === "revealing" || entryPhase === "done";
   const [activeJourneyStep, setActiveJourneyStep] = useState<string | null>(null);
   const [publicContent, setPublicContent] = useState<PublicContent | null>(null);
   const [publicLeaderboard, setPublicLeaderboard] = useState<LeaderboardResult | null>(null);
@@ -223,23 +228,89 @@ export default function Home() {
     ? activeGroup
     : liveFaqGroups[0]?.id ?? activeGroup;
 
-  const enterExperience = () => {
+  // When audio completes and we transition to "revealing", wait for the entrance animation before marking "done"
+  useEffect(() => {
+    if (entryPhase !== "revealing") return;
+    const timer = window.setTimeout(() => {
+      setEntryPhase("done");
+    }, 950);
+    return () => window.clearTimeout(timer);
+  }, [entryPhase]);
+
+  const enterExperience = async () => {
     if (entryPhase !== "intro") return;
     const AudioContextConstructor = window.AudioContext;
     if (AudioContextConstructor && !audioContextRef.current) {
       audioContextRef.current = new AudioContextConstructor();
     }
-    const audio = audioContextRef.current;
-    if (audio?.state === "suspended") void audio.resume().catch(() => {});
-    setEntryPhase("done");
+    const audioCtx = audioContextRef.current;
+    if (audioCtx?.state === "suspended") void audioCtx.resume().catch(() => {});
+
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      setGateMounted(false);
+      setEntryPhase("done");
+      return;
+    }
+    setGateLeaving(true);
+    setEntryPhase("playing");
+
+    try {
+      const audio = audioRef.current;
+      if (audio) {
+        audio.currentTime = 0;
+        await audio.play();
+      }
+    } catch {
+      // Audio autoplay handled smoothly
+    }
+
+    try {
+      const video = videoRef.current;
+      if (video) {
+        video.currentTime = 0;
+        await video.play();
+      }
+    } catch {
+      // Video autoplay fallback handled smoothly
+    }
+
+    // Smoothly dissolve the gate overlay into the active video
+    window.setTimeout(() => {
+      setGateMounted(false);
+    }, 450);
+
+    // Safety fallback: ensure transition to revealing if audio onEnded doesn't fire
+    window.setTimeout(() => {
+      setEntryPhase((current) => (current === "playing" || current === "landed" ? "revealing" : current));
+    }, 11200);
+  };
+
+  const handlePlaybackFinished = () => {
+    // Both video and audio have completed their full 10.7s cinematic intro.
+    // Reveal website hero interface smoothly!
+    setEntryPhase((current) => (current !== "done" ? "revealing" : current));
   };
 
   useEffect(() => {
-    if (!entryOpen) return;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => { document.body.style.overflow = previousOverflow; };
-  }, [entryOpen]);
+    const handleKeyDown = (e: globalThis.KeyboardEvent) => {
+      if (e.key === "Escape" && entryPhase !== "done") {
+        if (audioRef.current) audioRef.current.pause();
+        if (videoRef.current) videoRef.current.pause();
+        setGateMounted(false);
+        setEntryPhase("done");
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [entryPhase]);
+
+  useEffect(() => {
+    if (entryPhase !== "done") {
+      const previousOverflow = document.body.style.overflow;
+      document.body.style.overflow = "hidden";
+      return () => { document.body.style.overflow = previousOverflow; };
+    }
+  }, [entryPhase]);
 
   useEffect(() => {
     const canvas = dustCanvasRef.current;
@@ -439,7 +510,8 @@ export default function Home() {
 
   useEffect(() => {
     const background = worldtreeRef.current;
-    const image = background?.querySelector(".worldtree-image") as HTMLImageElement | null;
+    const image = background?.querySelector(".hero-background-image") as HTMLImageElement | null;
+    const shade = background?.querySelector(".worldtree-shade") as HTMLElement | null;
     if (!background || !image || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
     let frame = 0;
@@ -448,8 +520,13 @@ export default function Home() {
       frame = requestAnimationFrame(() => {
         const travel = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
         const progress = Math.max(0, Math.min(1, window.scrollY / travel));
-        image.style.objectPosition = `${12 + progress * 76}% ${34 + progress * 30}%`;
-        image.style.transform = `scale(${1.12 + progress * 0.15})`;
+        // Keep centered horizontally to exactly match video frame; subtle cinematic scale on scroll
+        image.style.objectPosition = "center";
+        image.style.transform = `scale(${1 + progress * 0.08})`;
+        // Dim background on scroll for crisp body copy contrast (ecell.in/ca benchmark)
+        if (shade) {
+          shade.style.opacity = String(Math.min(0.85, progress * 1.6));
+        }
       });
     };
 
@@ -483,40 +560,74 @@ export default function Home() {
   return (
     <main className="site-shell">
       <canvas ref={dustCanvasRef} className="dust-particle-canvas" aria-hidden="true" />
-      {entryOpen && <section className={`entry-screen${entryPhase !== "intro" ? " is-cinematic" : ""}${entryPhase === "ignition" ? " is-igniting" : ""}${entryPhase === "fracture" ? " is-fracturing" : ""}`} role="dialog" aria-modal="true" aria-label="Welcome to Campus Assembly">
-        <Image src="/images/cap-entry-background.png" alt="" fill sizes="100vw" priority className="entry-backdrop-photo" />
-        {entryPhase !== "intro" && <div className={`entry-impact${entryPhase === "ignition" ? " is-live" : ""}`} aria-hidden="true" />}
-        {entryPhase !== "intro" && <svg className={`entry-fracture-lines${entryPhase === "fracture" ? " is-breaking" : ""}`} viewBox="0 0 1000 700" preserveAspectRatio="none" aria-hidden="true">
-          <path className="entry-crack" pathLength={1} d="M500 350 L420 315 L340 336 L200 273 L100 315 L0 308" />
-          <path className="entry-crack" pathLength={1} d="M500 350 L540 329 L610 294 L720 245 L820 154 L1000 0" />
-          <path className="entry-crack" pathLength={1} d="M500 350 L600 427 L660 476 L700 518 L840 588 L1000 700" />
-          <path className="entry-crack" pathLength={1} d="M500 350 L390 427 L340 476 L270 504 L130 602 L0 700" />
-          <path className="entry-crack" pathLength={1} d="M398 302 L390 269 L365 248 L374 216 L350 185 L361 154 L339 123 L347 92 L327 60" />
-          <path className="entry-crack" pathLength={1} d="M609 304 L618 270 L642 249 L633 216 L657 185 L647 154 L669 123 L661 92 L681 60" />
-          <path className="entry-crack" pathLength={1} d="M420 478 L389 487 L375 515 L341 510 L315 535 L281 529 L256 557 L220 550 L194 578 L158 571 L129 600 L91 593 L62 622" />
-          <path className="entry-crack" pathLength={1} d="M582 480 L613 489 L628 517 L661 511 L687 537 L721 531 L746 559 L781 552 L808 580 L844 573 L873 602 L910 595 L940 624" />
-        </svg>}
-        {entryPhase === "fracture" && <div className="entry-shards" aria-hidden="true"><span className="entry-shard entry-shard-north" /><span className="entry-shard entry-shard-east" /><span className="entry-shard entry-shard-south" /><span className="entry-shard entry-shard-west" /></div>}
-        <div className="entry-flag-motion" aria-hidden="true"><span className="entry-flag entry-flag-left" /><span className="entry-flag entry-flag-right" /></div>
-        <div className="entry-fire-glows" aria-hidden="true"><span className="entry-fire-glow entry-fire-glow-1" /><span className="entry-fire-glow entry-fire-glow-2" /><span className="entry-fire-glow entry-fire-glow-3" /><span className="entry-fire-glow entry-fire-glow-4" /></div>
-        <div className="entry-vignette" aria-hidden="true" />
-        <div className="entry-brand"><HexMark /><span>CAMPUS ASSEMBLY<small>INITIATIVE / 2026</small></span></div>
-        <div className="entry-center">
-          <span className="entry-overline">YOUR CAMPUS. YOUR FRONTIER.</span>
-          <button className="entry-button" type="button" autoFocus disabled={entryPhase !== "intro"} onClick={enterExperience}>
-            <span className="entry-button-ring"><span>✦</span></span>
-            <span className="entry-button-label">TAP TO ENTER</span>
-          </button>
-        </div>
-        <span className="entry-coordinate entry-coordinate-left">EARTH-616 / CAP</span>
-        <span className="entry-coordinate entry-coordinate-right">EST. 2026</span>
-      </section>}
-      <div className="worldtree-background" aria-hidden="true" ref={worldtreeRef}>
-        <Image src="/images/multiverse-canopy-hq.png" alt="" fill sizes="100vw" quality={90} className="worldtree-image" />
+      {/* Intro Audio Player: plays full 10.74s cinematic track with natural decay */}
+      <audio
+        ref={audioRef}
+        src="/audio/intro-audio.mp3"
+        preload="auto"
+        onEnded={handlePlaybackFinished}
+      />
+
+      {/* Persistent website background: always mounted underneath */}
+      <div className={`worldtree-background hero-background ${entryPhase === "intro" || (entryPhase === "playing" && gateMounted) ? "hero-background--hidden" : ""}`} aria-hidden="true" ref={worldtreeRef}>
+        <Image
+          src="/images/doomsday-hero-unified.webp"
+          alt=""
+          fill
+          priority
+          sizes="100vw"
+          quality={95}
+          className="hero-background-image"
+        />
         <div className="worldtree-shade" />
-        <Image src="/images/doom-hero.png" alt="" width={1024} height={1536} sizes="(max-width: 640px) 100vw, 68vw" className="worldtree-mask" />
       </div>
-      <div className="site-content" data-launching={entryPhase === "intro" || entryPhase === "ignition" ? "true" : "false"} data-launch-reveal={entryPhase === "fracture" ? "true" : "false"} inert={entryOpen}>
+
+      {/* Intro Gate Overlay: smoothly dissolves into video on click */}
+      {gateMounted && (
+        <section
+          className={`entry-screen ${gateLeaving ? "entry-screen--leaving" : ""}`}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Welcome to Campus Assembly"
+        >
+          <Image src="/images/cap-entry-background.png" alt="" fill sizes="100vw" priority className="entry-backdrop-photo" />
+          <div className="entry-flag-motion" aria-hidden="true"><span className="entry-flag entry-flag-left" /><span className="entry-flag entry-flag-right" /></div>
+          <div className="entry-fire-glows" aria-hidden="true"><span className="entry-fire-glow entry-fire-glow-1" /><span className="entry-fire-glow entry-fire-glow-2" /><span className="entry-fire-glow entry-fire-glow-3" /><span className="entry-fire-glow entry-fire-glow-4" /></div>
+          <div className="entry-vignette" aria-hidden="true" />
+          <div className="entry-center">
+            <button className="entry-button" type="button" autoFocus onClick={enterExperience} aria-label="Tap to enter Campus Ambassador Program experience">
+              <span className="entry-button-ring"><span>✦</span></span>
+              <span className="entry-button-label">TAP TO ENTER</span>
+            </button>
+          </div>
+          <span className="entry-coordinate entry-coordinate-left">EARTH-616 / CAP</span>
+          <span className="entry-coordinate entry-coordinate-right">EST. 2026</span>
+        </section>
+      )}
+
+      {/* Video layer: plays full flythrough and seamlessly lands on pristine artwork */}
+      {entryPhase !== "done" && (
+        <div className={`entry-video-container video-layer ${entryPhase === "revealing" ? "video-layer--leaving" : ""}`}>
+          <video
+            ref={videoRef}
+            src="/videos/doomsday-intro-full.mp4"
+            muted
+            playsInline
+            preload="auto"
+            className="entry-video-player intro-video"
+            onEnded={handlePlaybackFinished}
+            onError={handlePlaybackFinished}
+          />
+        </div>
+      )}
+
+      {/* Hero interface and full site content */}
+      <div
+        className={`site-content hero-interface ${hasEntered ? "hero-interface--visible" : ""}`}
+        data-launching={!hasEntered ? "true" : "false"}
+        inert={!hasEntered}
+      >
+      <div className="announcement"><span className="live-dot" /> INTEL UPDATE <span className="announcement-divider">/</span> THE NEXT GENERATION OF CAMPUS LEADERS STARTS HERE <a href="#about">DECRYPT <Arrow /></a></div>
       <header className="site-header">
         <a className="brand header-brand" href="#top" aria-label="Campus Assembly, E-Cell IIT BHU"><ECellLogo /><span className="brand-divider" aria-hidden="true" /><span className="brand-name">CAMPUS ASSEMBLY<span className="brand-sub">INITIATIVE  /  2026</span></span></a>
         <button className="menu-toggle" aria-label={menuOpen ? "Close navigation" : "Open navigation"} aria-expanded={menuOpen} onClick={() => setMenuOpen(!menuOpen)}>{menuOpen ? "×" : "☰"}</button>
