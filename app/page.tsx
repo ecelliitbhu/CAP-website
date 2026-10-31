@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent } from "react";
+import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import type { FaqItem, LeaderboardResult, PublicContent } from "@/lib/repositories/types";
 
 const faqGroups = [
@@ -180,13 +180,11 @@ export default function Home() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
   const hasEntered = entryPhase === "revealing" || entryPhase === "done";
-  const entryOpen = entryPhase !== "done";
   const [activeJourneyStep, setActiveJourneyStep] = useState<string | null>(null);
   const [publicContent, setPublicContent] = useState<PublicContent | null>(null);
   const [publicLeaderboard, setPublicLeaderboard] = useState<LeaderboardResult | null>(null);
   const faqRef = useRef<HTMLElement>(null);
   const worldtreeRef = useRef<HTMLDivElement>(null);
-  const heroAssembledRef = useRef<HTMLSpanElement>(null);
   const dustCanvasRef = useRef<HTMLCanvasElement>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const lastRevealSoundAtRef = useRef(0);
