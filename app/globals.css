@@ -241,22 +241,24 @@ a,button{transition-duration:.2s}
 .entry-brand{position:absolute;z-index:3;top:clamp(24px,5vh,52px);left:clamp(24px,5vw,64px);display:flex;align-items:center;gap:12px;color:#e2e7d6;font:700 10px/1.4 monospace;letter-spacing:.17em}
 .entry-brand .hex-mark{width:34px;height:38px;font-size:18px}
 .entry-brand small{display:block;margin-top:4px;color:#87917f;font:8px/1 monospace;letter-spacing:.2em}
-.entry-center{position:relative;z-index:3;display:flex;flex-direction:column;align-items:center;gap:29px;text-align:center}
-.entry-overline{color:#a4b291;font:9px/1 monospace;letter-spacing:.24em}
-.entry-button{display:flex;flex-direction:column;align-items:center;gap:17px;padding:0;border:0;background:transparent;color:var(--green);cursor:pointer}
-.entry-button-ring{position:relative;width:88px;height:88px;border:1px solid #b9f267cc;border-radius:50%;display:grid;place-items:center;color:#e5ffcb;font-size:21px;text-shadow:0 0 18px #b9f2677a;box-shadow:0 0 0 8px #b9f2670a,0 0 38px #9ee45b1c;animation:entry-circle-pulse 1.9s ease-in-out infinite}
-.entry-button-ring:before,.entry-button-ring:after{content:"";position:absolute;inset:-9px;border:1px solid #b9f26736;border-radius:50%}
-.entry-button-ring:after{inset:-17px;border-color:#b9f2671b}
+.entry-center{position:absolute;z-index:5;bottom:clamp(32px,5.5vh,56px);left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center}
+.entry-overline{display:none}
+.entry-button{display:flex;flex-direction:column;align-items:center;gap:10px;padding:0;border:0;background:transparent;color:var(--green);cursor:pointer;transition:transform .2s ease}
+.entry-button:hover{transform:translateY(-2px)}
+.entry-button-ring{position:relative;width:52px;height:52px;border:1.5px solid #b9f267;border-radius:50%;display:grid;place-items:center;color:#e5ffcb;font-size:14px;text-shadow:0 0 12px #b9f267;box-shadow:0 0 16px #b9f26766,0 0 28px #b9f26733;animation:entry-circle-pulse 1.9s ease-in-out infinite;transition:transform .2s ease,box-shadow .2s ease}
+.entry-button-ring:before,.entry-button-ring:after{content:"";position:absolute;inset:-6px;border:1px dashed #b9f26744;border-radius:50%}
+.entry-button-ring:after{inset:-12px;border:1px solid #b9f26722}
 .entry-button-ring>span{animation:entry-star-blink 1.3s ease-in-out infinite}
-.entry-button:hover .entry-button-ring{background:#b9f26712;box-shadow:0 0 0 8px #b9f26710,0 0 48px #9ee45b36}
-.entry-button-label{padding:9px 14px;border:1px solid #b9f26799;background:#070b08d9;box-shadow:0 4px 18px #000b;color:#f0f6df;font:700 10px/1 monospace;letter-spacing:.24em;text-shadow:0 1px 8px #000}
+.entry-button:hover .entry-button-ring{background:#b9f26716;box-shadow:0 0 22px #b9f26799,0 0 40px #b9f2674d;transform:scale(1.04)}
+.entry-button-label{padding:8px 18px;border:1px solid #b9f267cc;background:#070b08ee;box-shadow:0 4px 18px #000b,0 0 12px #b9f26733;color:#f0f6df;font:700 11px/1 monospace;letter-spacing:.22em;text-shadow:0 1px 8px #000;border-radius:4px;backdrop-filter:blur(4px);transition:all .2s ease}
+.entry-button:hover .entry-button-label{background:#b9f26722;border-color:#b9f267;color:#fff;box-shadow:0 0 18px #b9f26766}
 .entry-button:focus-visible{outline:none}.entry-button:focus-visible .entry-button-ring{outline:2px solid var(--green);outline-offset:5px}
 .entry-coordinate{position:absolute;z-index:3;bottom:clamp(22px,4vh,40px);color:#78836f;font:8px/1 monospace;letter-spacing:.16em}
 .entry-coordinate-left{left:clamp(24px,5vw,64px)}.entry-coordinate-right{right:clamp(24px,5vw,64px)}
 @keyframes entry-cloud-drift{0%{transform:translate3d(-2.5%,-1.5%,0) scale(1.1)}50%{transform:translate3d(1.5%,1%,0) scale(1.14)}100%{transform:translate3d(3%,-1%,0) scale(1.09)}}
 @keyframes entry-circle-pulse{0%,100%{opacity:1;box-shadow:0 0 0 6px #b9f26712,0 0 24px #9ee45b44}50%{opacity:.78;box-shadow:0 0 0 12px #b9f26705,0 0 42px #9ee45b99}}
 @keyframes entry-star-blink{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.38;transform:scale(.82)}}
-@media(max-width:640px){.entry-brand{top:24px;left:22px}.entry-button-ring{width:78px;height:78px}.entry-coordinate{font-size:7px;bottom:22px}.entry-coordinate-left{left:20px}.entry-coordinate-right{right:20px}}
+@media(max-width:640px){.entry-center{bottom:24px;gap:8px}.entry-button-ring{width:44px;height:44px;font-size:12px}.entry-coordinate{font-size:7px;bottom:22px}.entry-coordinate-left{left:20px}.entry-coordinate-right{right:20px}}
 @media(prefers-reduced-motion:reduce){.entry-smoke-photo,.entry-button-ring,.entry-button-ring>span{animation:none!important}}
 
 /* Cards resolve from a cloud of nearby dust rather than being summoned from afar. */
@@ -464,3 +466,150 @@ body{font-size:16px}
 .mission-flip-description{max-width:58ch;font-size:15px;font-weight:650;line-height:1.45;color:#f7f3e7;text-shadow:0 1px 3px #000,0 0 9px #fff,0 0 15px #c9aa5688}
 @media(max-width:640px){.mission-list{grid-template-columns:1fr;gap:25px;margin-top:10px}.mission-list li{padding:0}.mission-flip{height:96px}.mission-flip-face{padding:18px 28px}.mission-flip-title{font-size:20px}.mission-flip-description{font-size:13px}}
 @media(prefers-reduced-motion:reduce){.mission-flip-inner{transition:none}}
+
+/* Video Layer & Master Cinematic Flow */
+.entry-video-container,
+.video-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  overflow: hidden;
+  background: #020908;
+  opacity: 1;
+  transition: opacity 600ms cubic-bezier(0.25, 1, 0.5, 1);
+  will-change: opacity;
+}
+
+.video-layer--leaving {
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+.entry-video-player,
+.intro-video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  background: transparent;
+  transform: scale(1);
+}
+
+.entry-screen--leaving {
+  opacity: 0 !important;
+  pointer-events: none !important;
+  transition: opacity 400ms cubic-bezier(0.22, 1, 0.36, 1) !important;
+}
+
+/* Persistent website background: 100% matched to video ending frame */
+.hero-background {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  background: #020908;
+  pointer-events: none;
+  opacity: 1;
+  transition: opacity 600ms ease-out;
+}
+
+.hero-background--hidden {
+  opacity: 0 !important;
+  visibility: hidden !important;
+}
+
+.hero-background-image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 100svh;
+  object-fit: cover;
+  object-position: center !important;
+  opacity: 1 !important;
+  transform: scale(1) !important;
+}
+
+.worldtree-shade {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  background: linear-gradient(90deg, rgba(3, 8, 6, 0.75) 0%, rgba(3, 8, 6, 0.25) 45%, rgba(3, 8, 6, 0.65) 100%),
+              linear-gradient(0deg, rgba(9, 11, 8, 0.95) 0%, rgba(9, 11, 8, 0.3) 35%, rgba(9, 11, 8, 0.2) 78%, rgba(9, 11, 8, 0.7) 100%);
+  opacity: 0;
+  transition: opacity 0.4s ease-out;
+  pointer-events: none;
+}
+
+/* Hero interface smooth reveal */
+.hero-interface--visible {
+  animation: heroInterfaceReveal 950ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.hero-interface--visible .site-header {
+  animation: heroHeaderSlideDown 850ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.hero-interface--visible .announcement {
+  animation: heroFadeIn 700ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.hero-interface--visible .hero-copy {
+  animation: heroContentRise 950ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes heroInterfaceReveal {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes heroHeaderSlideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes heroFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes heroContentRise {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .video-layer {
+    transition-duration: 0.01ms !important;
+  }
+  .hero-interface--visible,
+  .hero-interface--visible .site-header,
+  .hero-interface--visible .announcement,
+  .hero-interface--visible .hero-copy {
+    animation: none !important;
+  }
+}
+
+

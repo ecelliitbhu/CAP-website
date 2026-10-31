@@ -129,165 +129,97 @@ export default function Home() {
   const [activeGroup, setActiveGroup] = useState("about");
   const [openQuestions, setOpenQuestions] = useState<string[]>(["about-0"]);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [entryPhase, setEntryPhase] = useState<"intro" | "blackout" | "assemble" | "move" | "reveal" | "done">("intro");
-  const entryOpen = entryPhase !== "done";
-  const [launchTransform, setLaunchTransform] = useState({ x: 0, y: 0 });
-  const [wipeOrigin, setWipeOrigin] = useState({ x: 50, y: 50 });
+  type EntryPhase = "intro" | "playing" | "landed" | "revealing" | "done";
+  const [entryPhase, setEntryPhase] = useState<EntryPhase>("intro");
+  const [gateMounted, setGateMounted] = useState(true);
+  const [gateLeaving, setGateLeaving] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const hasEntered = entryPhase === "revealing" || entryPhase === "done";
   const [activeJourneyStep, setActiveJourneyStep] = useState<string | null>(null);
   const faqRef = useRef<HTMLElement>(null);
   const worldtreeRef = useRef<HTMLDivElement>(null);
   const heroAssembledRef = useRef<HTMLSpanElement>(null);
-  const launchTitleRef = useRef<HTMLHeadingElement>(null);
   const dustCanvasRef = useRef<HTMLCanvasElement>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const lastRevealSoundAtRef = useRef(0);
 
-  const enterExperience = () => {
+  // When audio completes and we transition to "revealing", wait for the entrance animation before marking "done"
+  useEffect(() => {
+    if (entryPhase !== "revealing") return;
+    const timer = window.setTimeout(() => {
+      setEntryPhase("done");
+    }, 950);
+    return () => window.clearTimeout(timer);
+  }, [entryPhase]);
+
+  const enterExperience = async () => {
     if (entryPhase !== "intro") return;
-    const AudioContextConstructor = window.AudioContext;
-    if (AudioContextConstructor && !audioContextRef.current) {
-      audioContextRef.current = new AudioContextConstructor();
-    }
-    const audio = audioContextRef.current;
-    if (audio) {
-      const playEntrySoundtrack = () => {
-        if (audio.state !== "running") return;
-        const now = audio.currentTime;
-
-        const addImpact = (startAt: number, duration: number, strength: number) => {
-          const length = Math.ceil(audio.sampleRate * duration);
-          const buffer = audio.createBuffer(1, length, audio.sampleRate);
-          const samples = buffer.getChannelData(0);
-          for (let index = 0; index < length; index += 1) {
-            const decay = Math.exp(-index / (audio.sampleRate * 0.045));
-            samples[index] = (Math.random() * 2 - 1) * decay;
-          }
-          const source = audio.createBufferSource();
-          const lowPass = audio.createBiquadFilter();
-          const gain = audio.createGain();
-          source.buffer = buffer;
-          lowPass.type = "lowpass";
-          lowPass.frequency.setValueAtTime(1500, startAt);
-          lowPass.frequency.exponentialRampToValueAtTime(90, startAt + duration);
-          gain.gain.setValueAtTime(strength, startAt);
-          gain.gain.exponentialRampToValueAtTime(0.0001, startAt + duration);
-          source.connect(lowPass);
-          lowPass.connect(gain);
-          gain.connect(audio.destination);
-          source.start(startAt);
-          source.stop(startAt + duration);
-        };
-
-        const addSubHit = (startAt: number, strength: number) => {
-          const oscillator = audio.createOscillator();
-          const gain = audio.createGain();
-          oscillator.type = "sine";
-          oscillator.frequency.setValueAtTime(96, startAt);
-          oscillator.frequency.exponentialRampToValueAtTime(42, startAt + 0.48);
-          gain.gain.setValueAtTime(0.0001, startAt);
-          gain.gain.exponentialRampToValueAtTime(strength, startAt + 0.018);
-          gain.gain.exponentialRampToValueAtTime(0.0001, startAt + 0.52);
-          oscillator.connect(gain);
-          gain.connect(audio.destination);
-          oscillator.start(startAt);
-          oscillator.stop(startAt + 0.54);
-        };
-
-        const tapAt = now + 0.008;
-        addImpact(tapAt, 0.28, 0.085);
-        addSubHit(tapAt, 0.055);
-
-        const assemblyAt = now + 0.9;
-        addImpact(assemblyAt, 0.72, 0.11);
-        addSubHit(assemblyAt, 0.095);
-
-        // A slow, low brass-like chord gives the word a restrained heroic arrival.
-        [55, 82.41, 110, 164.81].forEach((frequency, index) => {
-          const oscillator = audio.createOscillator();
-          const lowPass = audio.createBiquadFilter();
-          const gain = audio.createGain();
-          const startAt = assemblyAt + index * 0.045;
-          const duration = 1.7;
-          oscillator.type = index < 2 ? "triangle" : "sawtooth";
-          oscillator.frequency.setValueAtTime(frequency, startAt);
-          lowPass.type = "lowpass";
-          lowPass.frequency.setValueAtTime(260, startAt);
-          lowPass.frequency.linearRampToValueAtTime(620, startAt + 0.9);
-          gain.gain.setValueAtTime(0.0001, startAt);
-          gain.gain.linearRampToValueAtTime(index < 2 ? 0.045 : 0.012, startAt + 0.55);
-          gain.gain.setValueAtTime(index < 2 ? 0.045 : 0.012, startAt + 1.05);
-          gain.gain.exponentialRampToValueAtTime(0.0001, startAt + duration);
-          oscillator.connect(lowPass);
-          lowPass.connect(gain);
-          gain.connect(audio.destination);
-          oscillator.start(startAt);
-          oscillator.stop(startAt + duration + 0.02);
-        });
-
-        // A filtered noise rise adds scale without turning the letters into little chimes.
-        const riseDuration = 1.25;
-        const riseBuffer = audio.createBuffer(1, Math.ceil(audio.sampleRate * riseDuration), audio.sampleRate);
-        const riseSamples = riseBuffer.getChannelData(0);
-        for (let index = 0; index < riseSamples.length; index += 1) riseSamples[index] = (Math.random() * 2 - 1) * 0.28;
-        const rise = audio.createBufferSource();
-        const riseFilter = audio.createBiquadFilter();
-        const riseGain = audio.createGain();
-        rise.buffer = riseBuffer;
-        riseFilter.type = "bandpass";
-        riseFilter.Q.setValueAtTime(0.55, assemblyAt);
-        riseFilter.frequency.setValueAtTime(180, assemblyAt);
-        riseFilter.frequency.exponentialRampToValueAtTime(1700, assemblyAt + riseDuration);
-        riseGain.gain.setValueAtTime(0.0001, assemblyAt);
-        riseGain.gain.linearRampToValueAtTime(0.018, assemblyAt + 0.85);
-        riseGain.gain.exponentialRampToValueAtTime(0.0001, assemblyAt + riseDuration);
-        rise.connect(riseFilter);
-        riseFilter.connect(riseGain);
-        riseGain.connect(audio.destination);
-        rise.start(assemblyAt);
-        rise.stop(assemblyAt + riseDuration);
-      };
-      void audio.resume().then(playEntrySoundtrack).catch(() => {});
-    }
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      setGateMounted(false);
       setEntryPhase("done");
       return;
     }
+    setGateLeaving(true);
+    setEntryPhase("playing");
 
-    setEntryPhase("blackout");
+    try {
+      const audio = audioRef.current;
+      if (audio) {
+        audio.currentTime = 0;
+        await audio.play();
+      }
+    } catch {
+      // Audio autoplay handled smoothly
+    }
+
+    try {
+      const video = videoRef.current;
+      if (video) {
+        video.currentTime = 0;
+        await video.play();
+      }
+    } catch {
+      // Video autoplay fallback handled smoothly
+    }
+
+    // Smoothly dissolve the gate overlay into the active video
     window.setTimeout(() => {
-      setEntryPhase("assemble");
-      window.setTimeout(() => {
-        const destination = heroAssembledRef.current?.getBoundingClientRect();
-        const assembled = launchTitleRef.current?.getBoundingClientRect();
-        if (!destination || !assembled) {
-          setEntryPhase("done");
-          return;
-        }
-        setLaunchTransform({
-          x: destination.left + destination.width / 2 - (assembled.left + assembled.width / 2),
-          y: destination.top + destination.height / 2 - (assembled.top + assembled.height / 2),
-        });
-        setWipeOrigin({
-          x: ((destination.left + destination.width / 2) / window.innerWidth) * 100,
-          y: ((destination.top + destination.height / 2) / window.innerHeight) * 100,
-        });
-        requestAnimationFrame(() => {
-          setEntryPhase("move");
-          window.setTimeout(() => {
-            setEntryPhase("reveal");
-            window.setTimeout(() => setEntryPhase("done"), 2050);
-          }, 1400);
-        });
-      }, 2550);
-    }, 900);
+      setGateMounted(false);
+    }, 450);
+
+    // Safety fallback: ensure transition to revealing if audio onEnded doesn't fire
+    window.setTimeout(() => {
+      setEntryPhase((current) => (current === "playing" || current === "landed" ? "revealing" : current));
+    }, 11200);
+  };
+
+  const handlePlaybackFinished = () => {
+    // Both video and audio have completed their full 10.7s cinematic intro.
+    // Reveal website hero interface smoothly!
+    setEntryPhase((current) => (current !== "done" ? "revealing" : current));
   };
 
   useEffect(() => {
-    if (!entryOpen) return;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => { document.body.style.overflow = previousOverflow; };
-  }, [entryOpen]);
+    const handleKeyDown = (e: globalThis.KeyboardEvent) => {
+      if (e.key === "Escape" && entryPhase !== "done") {
+        if (audioRef.current) audioRef.current.pause();
+        if (videoRef.current) videoRef.current.pause();
+        setGateMounted(false);
+        setEntryPhase("done");
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [entryPhase]);
+
+  useEffect(() => {
+    if (entryPhase !== "done") {
+      const previousOverflow = document.body.style.overflow;
+      document.body.style.overflow = "hidden";
+      return () => { document.body.style.overflow = previousOverflow; };
+    }
+  }, [entryPhase]);
 
   useEffect(() => {
     const canvas = dustCanvasRef.current;
@@ -487,7 +419,8 @@ export default function Home() {
 
   useEffect(() => {
     const background = worldtreeRef.current;
-    const image = background?.querySelector(".worldtree-image") as HTMLImageElement | null;
+    const image = background?.querySelector(".hero-background-image") as HTMLImageElement | null;
+    const shade = background?.querySelector(".worldtree-shade") as HTMLElement | null;
     if (!background || !image || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
     let frame = 0;
@@ -496,8 +429,13 @@ export default function Home() {
       frame = requestAnimationFrame(() => {
         const travel = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
         const progress = Math.max(0, Math.min(1, window.scrollY / travel));
-        image.style.objectPosition = `${12 + progress * 76}% ${34 + progress * 30}%`;
-        image.style.transform = `scale(${1.12 + progress * 0.15})`;
+        // Keep centered horizontally to exactly match video frame; subtle cinematic scale on scroll
+        image.style.objectPosition = "center";
+        image.style.transform = `scale(${1 + progress * 0.08})`;
+        // Dim background on scroll for crisp body copy contrast (ecell.in/ca benchmark)
+        if (shade) {
+          shade.style.opacity = String(Math.min(0.85, progress * 1.6));
+        }
       });
     };
 
@@ -531,32 +469,74 @@ export default function Home() {
   return (
     <main className="site-shell">
       <canvas ref={dustCanvasRef} className="dust-particle-canvas" aria-hidden="true" />
-      {entryOpen && <section className={`entry-screen${entryPhase !== "intro" ? " is-cinematic" : ""}${entryPhase === "blackout" ? " is-blackout" : ""}${entryPhase === "reveal" ? " is-revealing" : ""}`} role="dialog" aria-modal="true" aria-label="Welcome to Campus Assembly">
-        <Image src="/images/cap-entry-background.png" alt="" fill sizes="100vw" priority className="entry-backdrop-photo" />
-        <div className="entry-flag-motion" aria-hidden="true"><span className="entry-flag entry-flag-left" /><span className="entry-flag entry-flag-right" /></div>
-        <div className="entry-fire-glows" aria-hidden="true"><span className="entry-fire-glow entry-fire-glow-1" /><span className="entry-fire-glow entry-fire-glow-2" /><span className="entry-fire-glow entry-fire-glow-3" /><span className="entry-fire-glow entry-fire-glow-4" /></div>
-        <div className="entry-vignette" aria-hidden="true" />
-        <div className={`assemble-background${entryPhase === "blackout" || entryPhase === "assemble" || entryPhase === "move" ? " is-visible" : ""}`} aria-hidden="true" />
-        <div className="entry-brand"><HexMark /><span>CAMPUS ASSEMBLY<small>INITIATIVE / 2026</small></span></div>
-        <div className="entry-center">
-          <span className="entry-overline">YOUR CAMPUS. YOUR FRONTIER.</span>
-          <button className="entry-button" type="button" autoFocus disabled={entryPhase !== "intro"} onClick={enterExperience}>
-            <span className="entry-button-ring"><span>✦</span></span>
-            <span className="entry-button-label">TAP TO ENTER</span>
-          </button>
-        </div>
-        <span className="entry-coordinate entry-coordinate-left">EARTH-616 / CAP</span>
-        <span className="entry-coordinate entry-coordinate-right">EST. 2026</span>
-        {entryPhase === "assemble" || entryPhase === "move" || entryPhase === "reveal" ? <h1 ref={launchTitleRef} className={`launch-title${entryPhase === "move" || entryPhase === "reveal" ? " is-moving" : ""}`} aria-hidden="true" style={{ "--launch-x": `${launchTransform.x}px`, "--launch-y": `${launchTransform.y}px` } as CSSProperties}>
-          <span className="hero-title-line"><LaunchLetters text="ASSEMBLED" /></span>
-        </h1> : null}
-      </section>}
-      <div className="worldtree-background" aria-hidden="true" ref={worldtreeRef}>
-        <Image src="/images/multiverse-canopy-hq.png" alt="" fill sizes="100vw" quality={90} className="worldtree-image" />
+
+      {/* Intro Audio Player: plays full 10.74s cinematic track with natural decay */}
+      <audio
+        ref={audioRef}
+        src="/audio/intro-audio.mp3"
+        preload="auto"
+        onEnded={handlePlaybackFinished}
+      />
+
+      {/* Persistent website background: always mounted underneath */}
+      <div className={`worldtree-background hero-background ${entryPhase === "intro" || (entryPhase === "playing" && gateMounted) ? "hero-background--hidden" : ""}`} aria-hidden="true" ref={worldtreeRef}>
+        <Image
+          src="/images/doomsday-hero-unified.webp"
+          alt=""
+          fill
+          priority
+          sizes="100vw"
+          quality={95}
+          className="hero-background-image"
+        />
         <div className="worldtree-shade" />
-        <Image src="/images/doom-hero.png" alt="" width={1024} height={1536} sizes="(max-width: 640px) 100vw, 68vw" className="worldtree-mask" />
       </div>
-      <div className="site-content" data-launching={entryOpen ? "true" : "false"} data-launch-reveal={entryPhase === "reveal" ? "true" : "false"} style={{ "--launch-origin-x": `${wipeOrigin.x}%`, "--launch-origin-y": `${wipeOrigin.y}%` } as CSSProperties} inert={entryOpen}>
+
+      {/* Intro Gate Overlay: smoothly dissolves into video on click */}
+      {gateMounted && (
+        <section
+          className={`entry-screen ${gateLeaving ? "entry-screen--leaving" : ""}`}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Welcome to Campus Assembly"
+        >
+          <Image src="/images/cap-entry-background.png" alt="" fill sizes="100vw" priority className="entry-backdrop-photo" />
+          <div className="entry-flag-motion" aria-hidden="true"><span className="entry-flag entry-flag-left" /><span className="entry-flag entry-flag-right" /></div>
+          <div className="entry-fire-glows" aria-hidden="true"><span className="entry-fire-glow entry-fire-glow-1" /><span className="entry-fire-glow entry-fire-glow-2" /><span className="entry-fire-glow entry-fire-glow-3" /><span className="entry-fire-glow entry-fire-glow-4" /></div>
+          <div className="entry-vignette" aria-hidden="true" />
+          <div className="entry-center">
+            <button className="entry-button" type="button" autoFocus onClick={enterExperience} aria-label="Tap to enter Campus Ambassador Program experience">
+              <span className="entry-button-ring"><span>✦</span></span>
+              <span className="entry-button-label">TAP TO ENTER</span>
+            </button>
+          </div>
+          <span className="entry-coordinate entry-coordinate-left">EARTH-616 / CAP</span>
+          <span className="entry-coordinate entry-coordinate-right">EST. 2026</span>
+        </section>
+      )}
+
+      {/* Video layer: plays full flythrough and seamlessly lands on pristine artwork */}
+      {entryPhase !== "done" && (
+        <div className={`entry-video-container video-layer ${entryPhase === "revealing" ? "video-layer--leaving" : ""}`}>
+          <video
+            ref={videoRef}
+            src="/videos/doomsday-intro-full.mp4"
+            muted
+            playsInline
+            preload="auto"
+            className="entry-video-player intro-video"
+            onEnded={handlePlaybackFinished}
+            onError={handlePlaybackFinished}
+          />
+        </div>
+      )}
+
+      {/* Hero interface and full site content */}
+      <div
+        className={`site-content hero-interface ${hasEntered ? "hero-interface--visible" : ""}`}
+        data-launching={!hasEntered ? "true" : "false"}
+        inert={!hasEntered}
+      >
       <div className="announcement"><span className="live-dot" /> INTEL UPDATE <span className="announcement-divider">/</span> THE NEXT GENERATION OF CAMPUS LEADERS STARTS HERE <a href="#about">DECRYPT <Arrow /></a></div>
       <header className="site-header">
         <a className="brand header-brand" href="#top" aria-label="Campus Assembly, E-Cell IIT BHU"><ECellLogo /><span className="brand-divider" aria-hidden="true" /><HexMark /><span className="brand-name">CAMPUS<span>·</span> ASSEMBLY<span className="brand-sub">INITIATIVE  /  2026</span></span></a>
