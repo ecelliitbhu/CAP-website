@@ -2,7 +2,7 @@ import { assertSameOrigin, ensureDynamicConnection, jsonError, readBody } from "
 import { checkRateLimit, getClientIp } from "@/lib/admin/rate-limit";
 import { parseStrict, participantRegisterSchema } from "@/lib/admin/schemas";
 import { registerParticipant } from "@/lib/admin/store";
-import { createParticipantSessionToken, PARTICIPANT_COOKIE_NAME } from "@/lib/admin/session";
+import { createParticipantSessionToken } from "@/lib/admin/session";
 import { ApiError } from "@/lib/admin/auth";
 import { NextResponse } from "next/server";
 
@@ -42,13 +42,8 @@ export async function POST(request: Request) {
       token,
     }, { status: 201 });
 
-    response.cookies.set(PARTICIPANT_COOKIE_NAME, token, {
-      path: "/",
-      httpOnly: true,
-      sameSite: "lax",
-      maxAge: 30 * 24 * 60 * 60,
-      secure: process.env.NODE_ENV === "production",
-    });
+    // Do NOT set a session cookie here — participant must sign in via Google
+    // after their account is reviewed and approved.
 
     return response;
   } catch (error) {

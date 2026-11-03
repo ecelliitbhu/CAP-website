@@ -13,7 +13,7 @@ export default function PortalIndex() {
         const res = await fetch("/api/participant/me");
         const data = await res.json();
         if (data.authenticated && data.participant) {
-          router.replace("/portal/dashboard");
+          router.replace("/portal/status");
         } else {
           router.replace("/portal/login");
         }

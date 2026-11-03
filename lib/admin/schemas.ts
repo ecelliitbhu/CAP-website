@@ -168,7 +168,11 @@ export const participantRegisterSchema = z
 
 export const participantLoginSchema = z
   .object({
-    identifier: z.string().trim().min(2, "Email, Roll Number or Participant ID required").max(120),
+    email: z.string().trim().email("Valid email required").max(255).optional(),
+    identifier: z.string().trim().max(255).optional(),
+  })
+  .refine((data) => Boolean(data.email || data.identifier), {
+    message: "Registered email address is required",
   })
   .strict();
 

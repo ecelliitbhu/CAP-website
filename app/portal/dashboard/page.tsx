@@ -53,6 +53,12 @@ export default function StudentDashboardPage() {
         router.replace("/portal/login");
         return;
       }
+      // Gate: only Active/Accepted participants can access the dashboard
+      const s = (meData.participant.status || "").toLowerCase();
+      if (s !== "active" && s !== "accepted") {
+        router.replace("/portal/status");
+        return;
+      }
       setParticipant(meData.participant);
 
       const tasksRes = await fetch("/api/participant/tasks");

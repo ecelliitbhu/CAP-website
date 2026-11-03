@@ -172,7 +172,7 @@ button:focus-visible,a:focus-visible{outline-color:#cfad66}
 .leaderboard-table{border:1px solid #bfa45c77;background:linear-gradient(130deg,#12160f,#080b08);box-shadow:0 14px 38px #0006}
 .leaderboard-columns{background:linear-gradient(90deg,#29301d,#392d1b 52%,#30241c);color:#e3ca7e;border-bottom:1px solid #d0b1697a}
 .leaderboard-empty .hex-mark{box-shadow:0 0 0 6px #c59b5212,0 0 35px #c59b5233}
-.leaderboard-note{border-left:2px solid #ad573e;color:#c1b896}
+.leaderboard-note{color:#c1b896}
 .faq-tabs{border-right:1px solid #aa8d4b7a}.faq-tab{min-height:54px;border-bottom:1px solid #a98f4c2d;letter-spacing:.08em}
 .faq-tab.active{box-shadow:inset 3px 0 #c05c41;background:linear-gradient(90deg,#bd9b4c14,transparent)}
 .faq-panel{border-top:1px solid #c8a85c66}.faq-item{border-bottom:1px solid #b69a5540}.faq-question{font-size:13px}.faq-plus{background:#171810}

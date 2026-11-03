@@ -3,7 +3,13 @@ export type ReviewStatus = "pending_review" | "approved" | "needs_changes" | "re
 export type Decision = "approved" | "needs_changes" | "rejected";
 
 export interface AdminUser { id: string; name: string; role: Role; email: string }
-export interface Participant { id: string; name: string; email: string; rollNumber: string; college: string; totalPoints: number; rank: number }
+export interface Participant { id: string; name: string; email: string; rollNumber: string; college: string; totalPoints: number; rank: number; status?: string }
+
+export function isParticipantAccepted(participant: { status?: string | null }): boolean {
+  if (!participant.status) return true; // Default fallback if status was not tracked
+  const s = participant.status.toLowerCase();
+  return s === "active" || s === "accepted";
+}
 export interface Task { id: string; title: string; type: "proof_link" | "quiz" | "both"; maxPoints: number; deadline: string; graceMinutes: number; penaltyRate: number; penaltyCap: number; cutoffDays: number; correctionWindowDays: number; isMandatory?: boolean; assignedTo?: string; state?: string; description?: string | null; penaltyDays?: number; penaltyPercent?: number; createdAt?: string; assignedCount?: number }
 
 export interface HistoryItem { id: string; type: "submitted" | "decision" | "assignment" | "reopened" | "resubmission" | "extension"; at: string; actor: string; text: string; versionNo: number; reason?: string; decision?: Decision | "reopened"; pointsAwarded?: number | null; penaltyApplied?: number | null; finalPoints?: number | null }

@@ -19,18 +19,23 @@ export async function POST(request: Request) {
 
     const rawBody = await readBody(request);
     const data = parseStrict(participantLoginSchema, rawBody);
+    const email = (data.email || data.identifier)?.trim().toLowerCase();
 
-    const participant = await findParticipant(data.identifier);
-    if (!participant) {
+    if (!email || !email.includes("@")) {
+      throw new ApiError(422, "VALIDATION_ERROR", "A valid registered email address is required.");
+    }
+
+    const participant = await findParticipant(email);
+    if (!participant || participant.email.toLowerCase() !== email) {
       throw new ApiError(
         404,
         "NOT_FOUND",
-        "No registered ambassador found with this Email, Roll Number or ID."
+        "No registered ambassador found with this email address."
       );
     }
 
     const token = createParticipantSessionToken({
-      id: participant.id,
+      participantId: participant.id,
       email: participant.email,
       name: participant.name,
     });

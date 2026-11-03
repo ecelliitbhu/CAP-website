@@ -98,6 +98,7 @@ export function getPrdSeedData() {
       college: preset?.[2] ?? colleges[index % colleges.length],
       totalPoints: 0,
       rank: 0,
+    status: "Active",
     };
   });
 

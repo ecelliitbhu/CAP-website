@@ -2294,6 +2294,7 @@ export class DrizzleRepository implements SubmissionsRepository {
       college: p.college,
       totalPoints: p.totalPoints,
       rank: p.rank ?? 0,
+      status: p.status,
     };
   }
 
@@ -2330,6 +2331,7 @@ export class DrizzleRepository implements SubmissionsRepository {
         branch: input.branch?.trim() || null,
         year: input.year?.trim() || null,
         phone: input.phone?.trim() || null,
+        status: "Pending Approval",
         totalPoints: 0,
         rank: null,
       });
