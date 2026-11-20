@@ -38,6 +38,7 @@ export async function POST(request: Request) {
         type: data.type,
         maxPoints: data.maxPoints,
         deadline: data.deadline,
+        scheduledAt: data.scheduledAt ?? null,
         graceMinutes: data.graceMinutes,
         penaltyRate: data.penaltyRate,
         penaltyCap: data.penaltyCap,

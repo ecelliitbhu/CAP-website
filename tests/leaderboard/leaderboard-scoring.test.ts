@@ -142,25 +142,16 @@ function runLeaderboardScoringTests(
         }
       );
 
-      // Rejection: Reason < 10 characters
-      await assert.rejects(
-        async () => {
-          await repo.createScoreAdjustment(
-            {
-              participantId: "CAP-0005",
-              pointsDelta: 15,
-              reason: "Too short",
-            },
-            superAdmin
-          );
+      // Optional reason: allows empty or omitted reason
+      const optionalAdj = await repo.createScoreAdjustment(
+        {
+          participantId: "CAP-0005",
+          pointsDelta: 10,
         },
-        (err: unknown) => {
-          assert.ok(err instanceof ApiError);
-          assert.equal(err.statusCode, 422);
-          assert.equal(err.code, "REASON_REQUIRED");
-          return true;
-        }
+        superAdmin
       );
+      assert.ok(optionalAdj);
+      assert.equal(optionalAdj.participantId, "CAP-0005");
 
       // Rejection: Points delta === 0
       await assert.rejects(

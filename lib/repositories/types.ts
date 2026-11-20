@@ -159,7 +159,7 @@ export interface ScoreAdjustmentDetail {
   participantName?: string;
   submissionId?: string | null;
   pointsDelta: number;
-  reason: string;
+  reason?: string | null;
   adjustedBy: string;
   adjustedByName?: string;
   adjustedAt: string;
@@ -169,7 +169,7 @@ export interface CreateScoreAdjustmentParams {
   participantId: string;
   submissionId?: string | null;
   pointsDelta: number;
-  reason: string;
+  reason?: string | null;
   requestId?: string;
 }
 
@@ -204,10 +204,10 @@ export interface RegisterParticipantInput {
   name: string;
   email: string;
   college: string;
-  rollNumber: string;
-  branch?: string;
-  year?: string;
-  phone?: string;
+  rollNumber?: string | null;
+  branch?: string | null;
+  year?: string | null;
+  phone?: string | null;
 }
 
 export interface ParticipantTaskView {
@@ -355,6 +355,7 @@ export interface CreateTaskParams {
   type?: "proof_link" | "quiz" | "both";
   maxPoints: number;
   deadline: string | Date;
+  scheduledAt?: string | Date | null;
   graceMinutes?: number;
   penaltyRate?: number;
   penaltyCap?: number;

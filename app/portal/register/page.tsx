@@ -68,10 +68,19 @@ function RegisterContent() {
     const name = formData.name.trim();
     const email = formData.email.trim().toLowerCase();
     const college = formData.college.trim();
-    const rollNumber = formData.rollNumber.trim().toUpperCase();
+    const rollNumber = formData.rollNumber.trim() ? formData.rollNumber.trim().toUpperCase() : null;
+    const branch = formData.branch.trim();
+    const year = formData.year.trim();
+    const phone = formData.phone.trim();
 
-    if (!name || !email || !college || !rollNumber) {
+    if (!name || !email || !college || !branch || !year || !phone) {
       setError("Please fill in all required fields.");
+      return;
+    }
+
+    const digitsOnly = phone.replace(/\D/g, "");
+    if (digitsOnly.length < 10) {
+      setError("Please enter a valid contact phone number with at least 10 digits.");
       return;
     }
 
@@ -85,9 +94,9 @@ function RegisterContent() {
           email,
           college,
           rollNumber,
-          branch: formData.branch.trim() || null,
-          year: formData.year || null,
-          phone: formData.phone.trim() || null,
+          branch,
+          year,
+          phone,
         }),
       });
 
@@ -185,7 +194,7 @@ function RegisterContent() {
               />
             </div>
             <div className={styles.formGroup}>
-              <label className={styles.label} htmlFor="rollNumber">Roll Number / Student ID *</label>
+              <label className={styles.label} htmlFor="rollNumber">Roll Number / Student ID</label>
               <input
                 id="rollNumber"
                 type="text"
@@ -194,7 +203,6 @@ function RegisterContent() {
                 value={formData.rollNumber}
                 onChange={set("rollNumber")}
                 disabled={loading}
-                required
               />
             </div>
           </div>
@@ -202,7 +210,7 @@ function RegisterContent() {
           {/* Row 3: Branch + Year */}
           <div className={styles.formRow}>
             <div className={styles.formGroup}>
-              <label className={styles.label} htmlFor="branch">Department / Branch</label>
+              <label className={styles.label} htmlFor="branch">Department / Branch *</label>
               <input
                 id="branch"
                 type="text"
@@ -211,18 +219,20 @@ function RegisterContent() {
                 value={formData.branch}
                 onChange={set("branch")}
                 disabled={loading}
+                required
               />
             </div>
             <div className={styles.formGroup}>
-              <label className={styles.label} htmlFor="year">Year of Study</label>
+              <label className={styles.label} htmlFor="year">Year of Study *</label>
               <select
                 id="year"
                 className={styles.select}
                 value={formData.year}
                 onChange={set("year")}
                 disabled={loading}
+                required
               >
-                <option value="">1st Year</option>
+                <option value="" disabled>Select Year of Study</option>
                 {YEAR_OPTIONS.map((y) => (
                   <option key={y} value={y}>{y}</option>
                 ))}
@@ -232,15 +242,16 @@ function RegisterContent() {
 
           {/* Row 4: Phone */}
           <div className={styles.formGroup}>
-            <label className={styles.label} htmlFor="phone">Contact Phone (Optional)</label>
+            <label className={styles.label} htmlFor="phone">Contact Phone *</label>
             <input
               id="phone"
               type="tel"
               className={styles.input}
-              placeholder="e.g. +91 98765 43210"
+              placeholder="e.g. +91 98765 43210 (10 digits)"
               value={formData.phone}
               onChange={set("phone")}
               disabled={loading}
+              required
             />
           </div>
 

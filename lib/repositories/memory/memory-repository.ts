@@ -1586,14 +1586,6 @@ export class MemoryRepository implements SubmissionsRepository {
         throw new ApiError(404, "NOT_FOUND", "Participant was not found.");
       }
 
-      if (!params.reason || params.reason.trim().length < 10) {
-        throw new ApiError(
-          422,
-          "REASON_REQUIRED",
-          "Score adjustment requires a reason of at least 10 characters."
-        );
-      }
-
       if (!Number.isInteger(params.pointsDelta) || params.pointsDelta === 0) {
         throw new ApiError(422, "INVALID_POINTS_DELTA", "Points delta must be a non-zero integer.");
       }
@@ -1604,7 +1596,7 @@ export class MemoryRepository implements SubmissionsRepository {
         participantName: participant.name,
         submissionId: params.submissionId || null,
         pointsDelta: params.pointsDelta,
-        reason: params.reason.trim(),
+        reason: params.reason ? params.reason.trim() : null,
         adjustedBy: actor.id,
         adjustedByName: actor.name,
         adjustedAt: new Date().toISOString(),
@@ -1631,16 +1623,18 @@ export class MemoryRepository implements SubmissionsRepository {
   public async registerParticipant(input: RegisterParticipantInput): Promise<Participant> {
     return this.lock(async () => {
       const email = input.email.trim().toLowerCase();
-      const rollNumber = input.rollNumber.trim().toUpperCase();
+      const rollNumber = input.rollNumber ? input.rollNumber.trim().toUpperCase() : null;
 
       const existingEmail = this.participants.find((p) => p.email.toLowerCase() === email);
       if (existingEmail) {
         throw new ApiError(409, "PARTICIPANT_EXISTS", "A participant with this email is already registered.");
       }
 
-      const existingRoll = this.participants.find((p) => p.rollNumber?.toUpperCase() === rollNumber);
-      if (existingRoll) {
-        throw new ApiError(409, "PARTICIPANT_EXISTS", "A participant with this roll number is already registered.");
+      if (rollNumber) {
+        const existingRoll = this.participants.find((p) => p.rollNumber?.toUpperCase() === rollNumber);
+        if (existingRoll) {
+          throw new ApiError(409, "PARTICIPANT_EXISTS", "A participant with this roll number is already registered.");
+        }
       }
 
       const nextNum = this.participants.length + 1;
@@ -1651,7 +1645,10 @@ export class MemoryRepository implements SubmissionsRepository {
         name: input.name.trim(),
         email,
         college: input.college.trim(),
-        rollNumber,
+        rollNumber: rollNumber || "",
+        branch: input.branch ? input.branch.trim() : null,
+        year: input.year ? input.year.trim() : null,
+        phone: input.phone ? input.phone.trim() : null,
         totalPoints: 0,
         rank: (this.participants.length + 1) as unknown as number,
         status: "Pending Approval",
@@ -1669,6 +1666,7 @@ export class MemoryRepository implements SubmissionsRepository {
       throw new ApiError(404, "NOT_FOUND", "Participant was not found.");
     }
 
+    this.checkScheduledTasks();
     const now = new Date();
     return this.tasks.map((task) => {
       const submission = this.submissions.find(
@@ -2036,8 +2034,18 @@ export class MemoryRepository implements SubmissionsRepository {
   // Central Task Store & Task-wise reporting (PRD §6.2 D & §9.7)
   // ──────────────────────────────────────────────────────────────────────────
 
+  private checkScheduledTasks() {
+    const now = Date.now();
+    for (const t of this.tasks) {
+      if (t.state === "Scheduled" && t.scheduledAt && new Date(t.scheduledAt).getTime() <= now) {
+        t.state = "Live";
+      }
+    }
+  }
+
   public async listTasks(state?: string): Promise<Task[]> {
     return this.lock(() => {
+      this.checkScheduledTasks();
       const tasks =
         state && state !== "all"
           ? this.tasks.filter((t) => t.state === state)
@@ -2051,6 +2059,7 @@ export class MemoryRepository implements SubmissionsRepository {
 
   public async getTaskById(id: string): Promise<Task | null> {
     return this.lock(() => {
+      this.checkScheduledTasks();
       const task = this.tasks.find((t) => t.id === id);
       if (!task) return null;
       return {
@@ -2078,6 +2087,11 @@ export class MemoryRepository implements SubmissionsRepository {
         isMandatory: params.isMandatory ?? true,
         assignedTo: params.assignedTo || "all",
         state: params.state || "Draft",
+        scheduledAt: params.scheduledAt
+          ? typeof params.scheduledAt === "string"
+            ? params.scheduledAt
+            : params.scheduledAt.toISOString()
+          : null,
       };
       this.tasks.push(task);
       for (const participant of this.participants) {
@@ -2117,6 +2131,13 @@ export class MemoryRepository implements SubmissionsRepository {
       if (patch.isMandatory !== undefined) task.isMandatory = patch.isMandatory;
       if (patch.assignedTo !== undefined) task.assignedTo = patch.assignedTo;
       if (patch.state !== undefined) task.state = patch.state;
+      if (patch.scheduledAt !== undefined) {
+        task.scheduledAt = patch.scheduledAt
+          ? typeof patch.scheduledAt === "string"
+            ? patch.scheduledAt
+            : patch.scheduledAt.toISOString()
+          : null;
+      }
       return task;
     });
   }

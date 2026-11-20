@@ -1159,14 +1159,12 @@ export async function recalculateFullLeaderboard(
 export async function applyScoreAdjustment(
   participantId: string,
   pointsDelta: number,
-  reason: string,
+  reason: string | undefined | null,
   adjustedBy: string,
   submissionId?: string,
   clientIp?: string
 ): Promise<void> {
-  if (reason.length < MIN_REASON_LENGTH) {
-    throw new Error(`Reason must be at least ${MIN_REASON_LENGTH} characters`);
-  }
+  const cleanReason = reason ? reason.trim() : "";
 
   if (!Number.isInteger(pointsDelta) || pointsDelta === 0) {
     throw new RangeError("pointsDelta must be a non-zero integer");
@@ -1194,7 +1192,7 @@ export async function applyScoreAdjustment(
         participantId,
         submissionId: submissionId ?? null,
         pointsDelta,
-        reason,
+        reason: cleanReason,
         adjustedBy: actorId,
       })
       .returning();
@@ -1208,9 +1206,9 @@ export async function applyScoreAdjustment(
         entityId: adjustment.id,
         action: "adjustment_applied",
         oldValue: { totalPoints: participant.totalPoints },
-        newValue: { pointsDelta, reason },
+        newValue: { pointsDelta, reason: cleanReason },
         changedBy: actorId,
-        reason,
+        reason: cleanReason,
         ipAddress: clientIp,
       },
       tx

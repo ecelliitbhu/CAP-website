@@ -23,6 +23,7 @@ type TaskForm = {
   correctionWindowDays: string;
   isMandatory: boolean;
   state: string;
+  scheduledAt: string;
 };
 
 const emptyForm: TaskForm = {
@@ -38,6 +39,7 @@ const emptyForm: TaskForm = {
   correctionWindowDays: "3",
   isMandatory: true,
   state: "Draft",
+  scheduledAt: "",
 };
 
 const stateBadge = (state: string) =>
@@ -101,6 +103,7 @@ export default function TasksPanel({ canManage }: Props) {
       correctionWindowDays: String(task.correctionWindowDays),
       isMandatory: task.isMandatory ?? true,
       state: task.state ?? "Draft",
+      scheduledAt: task.scheduledAt ? formatDateInput(task.scheduledAt) : "",
     });
     setEditing(task);
     setCreating(false);
@@ -125,9 +128,14 @@ export default function TasksPanel({ canManage }: Props) {
     correctionWindowDays: Number(form.correctionWindowDays),
     isMandatory: form.isMandatory,
     state: form.state,
+    scheduledAt: form.state === "Scheduled" && form.scheduledAt ? new Date(form.scheduledAt).toISOString() : null,
   });
 
   const save = async () => {
+    if (form.state === "Scheduled" && !form.scheduledAt) {
+      setError("Please specify a scheduled release time.");
+      return;
+    }
     setSaving(true);
     setError(null);
     try {
@@ -241,6 +249,11 @@ export default function TasksPanel({ canManage }: Props) {
                     <td>{task.type === "both" ? "Proof + quiz" : task.type === "quiz" ? "Quiz" : "Proof link"}</td>
                     <td>
                       <span className={`${styles.badge} ${stateBadge(task.state ?? "Draft")}`}>{task.state ?? "Draft"}</span>
+                      {task.state === "Scheduled" && task.scheduledAt && (
+                        <small style={{ display: "block", color: "#6b7280", marginTop: "2px" }}>
+                          {formatDateTime(task.scheduledAt)}
+                        </small>
+                      )}
                     </td>
                     <td>{formatDateTime(task.deadline)}</td>
                     <td>{task.maxPoints}</td>
@@ -335,6 +348,18 @@ export default function TasksPanel({ canManage }: Props) {
                     ))}
                   </select>
                 </div>
+                {form.state === "Scheduled" && (
+                  <div className={styles.field}>
+                    <label>Scheduled release time (local time)</label>
+                    <input
+                      type="datetime-local"
+                      className={styles.input}
+                      value={form.scheduledAt}
+                      onChange={(e) => setForm({ ...form, scheduledAt: e.target.value })}
+                      required
+                    />
+                  </div>
+                )}
                 <div className={styles.field}>
                   <label>Max points</label>
                   <input
