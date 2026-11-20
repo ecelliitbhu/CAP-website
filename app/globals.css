@@ -532,6 +532,45 @@ body{font-size:16px}
   transform: scale(1);
 }
 
+.video-skip-btn {
+  position: absolute;
+  top: clamp(16px, 3vh, 32px);
+  right: clamp(16px, 3vw, 40px);
+  z-index: 60;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 9px 20px;
+  background: rgba(10, 18, 16, 0.82);
+  border: 1px solid rgba(212, 173, 97, 0.48);
+  border-radius: 6px;
+  color: #f5eedb;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4), 0 0 10px rgba(212, 173, 97, 0.15);
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.video-skip-btn:hover {
+  background: rgba(212, 173, 97, 0.22);
+  border-color: #d4ad61;
+  color: #ffffff;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.6), 0 0 16px rgba(212, 173, 97, 0.35);
+}
+
+.video-skip-btn:active {
+  transform: translateY(0);
+}
+
 .entry-screen--leaving {
   opacity: 0 !important;
   pointer-events: none !important;
@@ -1244,3 +1283,28 @@ body{
   .site-footer{padding-bottom:18px}
 }
 
+
+/* Pre-paint zero-flash bypass when intro was already seen in session */
+html.cap-intro-bypass .entry-screen,
+html.cap-intro-bypass .video-layer {
+  display: none !important;
+}
+
+html.cap-intro-bypass .hero-background--hidden {
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+html.cap-intro-bypass .hero-interface {
+  opacity: 1 !important;
+  animation: none !important;
+  pointer-events: auto !important;
+}
+
+html.cap-intro-bypass .hero-interface .site-header,
+html.cap-intro-bypass .hero-interface .announcement,
+html.cap-intro-bypass .hero-interface .hero-copy {
+  animation: none !important;
+  opacity: 1 !important;
+  transform: none !important;
+}

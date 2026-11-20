@@ -883,8 +883,8 @@ export default function AdminPage() {
   };
 
   const submitScoreAdjustment = async () => {
-    if (!adjParticipantId || !adjPointsDelta || !adjReason || adjReason.trim().length < 10) {
-      setNotice("Provide participant, non-zero points delta, and reason of at least 10 characters.");
+    if (!adjParticipantId || !adjPointsDelta) {
+      setNotice("Provide participant and non-zero points delta.");
       return;
     }
     const delta = parseInt(adjPointsDelta, 10);
@@ -899,7 +899,7 @@ export default function AdminPage() {
         body: JSON.stringify({
           participantId: adjParticipantId,
           pointsDelta: delta,
-          reason: adjReason.trim(),
+          reason: adjReason.trim() || undefined,
         }),
       });
       setAdjustmentModal(false);
@@ -1216,11 +1216,11 @@ export default function AdminPage() {
                         />
                       </label>
                       <label className={styles.inputLabel}>
-                        Audit Reason <span>Minimum 10 characters</span>
+                        Audit Reason <span>Optional</span>
                         <textarea
                           value={adjReason}
                           onChange={(e) => setAdjReason(e.target.value)}
-                          placeholder="Detailed reason for manual adjustment (stored in audit log)…"
+                          placeholder="Optional reason for manual adjustment (stored in audit log)…"
                         />
                       </label>
                     </div>
@@ -1230,7 +1230,7 @@ export default function AdminPage() {
                       </button>
                       <button
                         className={styles.actionBtnPrimary}
-                        disabled={acting || !adjParticipantId || !adjPointsDelta || adjReason.trim().length < 10}
+                        disabled={acting || !adjParticipantId || !adjPointsDelta}
                         onClick={() => void submitScoreAdjustment()}
                       >
                         {acting ? "Applying…" : "Apply Adjustment"}

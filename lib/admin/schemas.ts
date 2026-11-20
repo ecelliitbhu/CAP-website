@@ -115,7 +115,7 @@ export const scoreAdjustmentSchema = z
     pointsDelta: z.number().int("pointsDelta must be an integer").refine((n) => n !== 0, {
       message: "pointsDelta must be a non-zero integer",
     }),
-    reason: z.string().min(5, "Adjustment reason must be at least 5 characters").max(2000),
+    reason: z.string().max(2000).nullable().optional(),
     requestId: z.string().max(128).optional(),
   })
   .strict();
@@ -159,10 +159,10 @@ export const participantRegisterSchema = z
     name: z.string().trim().min(2, "Name must be at least 2 characters").max(100),
     email: z.string().trim().email("Invalid email address").max(120),
     college: z.string().trim().min(2, "College must be at least 2 characters").max(150),
-    rollNumber: z.string().trim().min(2, "Roll number must be at least 2 characters").max(50),
-    branch: z.string().trim().max(100).optional().nullable(),
-    year: z.string().trim().max(20).optional().nullable(),
-    phone: z.string().trim().max(20).optional().nullable(),
+    rollNumber: z.string().trim().max(50).optional().nullable(),
+    branch: z.string().trim().min(2, "Department/branch must be at least 2 characters").max(100),
+    year: z.string().trim().min(1, "Year of study is required").max(50),
+    phone: z.string().trim().min(10, "Contact phone must be at least 10 digits").max(20),
   })
   .strict();
 
@@ -256,6 +256,7 @@ export const createTaskSchema = z
     type: z.enum(["proof_link", "quiz", "both"]).default("proof_link"),
     maxPoints: z.number().int().positive("maxPoints must be greater than 0"),
     deadline: z.string().min(10, "Valid deadline is required"),
+    scheduledAt: z.string().nullable().optional(),
     graceMinutes: z.number().int().nonnegative().default(60),
     penaltyRate: z.number().int().min(0).max(100).default(10),
     penaltyCap: z.number().int().min(0).max(100).default(50),
@@ -274,6 +275,7 @@ export const updateTaskSchema = z
     type: z.enum(["proof_link", "quiz", "both"]).optional(),
     maxPoints: z.number().int().positive("maxPoints must be greater than 0").optional(),
     deadline: z.string().min(10, "Valid deadline is required").optional(),
+    scheduledAt: z.string().nullable().optional(),
     graceMinutes: z.number().int().nonnegative().optional(),
     penaltyRate: z.number().int().min(0).max(100).optional(),
     penaltyCap: z.number().int().min(0).max(100).optional(),

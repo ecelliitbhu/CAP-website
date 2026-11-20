@@ -69,6 +69,7 @@ export const tasks = capSchema.table(
     maxPoints: integer("max_points").notNull(),
     assignedTo: text("assigned_to").notNull().default("all"),
     deadline: timestamp("deadline", { withTimezone: true }).notNull(), // UTC
+    scheduledAt: timestamp("scheduled_at", { withTimezone: true }), // UTC
     graceMinutes: integer("grace_minutes").notNull().default(60),
     penaltyRate: integer("penalty_rate").notNull().default(10), // % of max points per started 24h
     penaltyCap: integer("penalty_cap").notNull().default(50), // % of max points
@@ -232,13 +233,12 @@ export const scoreAdjustments = capSchema.table(
       .references(() => participants.id),
     submissionId: varchar("submission_id", { length: 64 }).references(() => submissions.id),
     pointsDelta: integer("points_delta").notNull(),
-    reason: text("reason").notNull(),
+    reason: text("reason"),
     adjustedBy: varchar("adjusted_by", { length: 64 })
       .notNull()
       .references(() => adminUsers.id),
     adjustedAt: timestamp("adjusted_at", { withTimezone: true }).defaultNow().notNull(),
-  },
-  (t) => [check("adj_reason_chk", sql`length(trim(${t.reason})) >= 10`)]
+  }
 );
 
 // 10. Leaderboard state (single row, id = 1). The review service NEVER writes published_snapshot.

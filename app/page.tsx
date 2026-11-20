@@ -173,6 +173,23 @@ export default function Home() {
   const [entryPhase, setEntryPhase] = useState<EntryPhase>("intro");
   const [gateMounted, setGateMounted] = useState(true);
   const [gateLeaving, setGateLeaving] = useState(false);
+
+  // Check session storage on mount: if user has already entered or visited with deep link, bypass intro
+  useEffect(() => {
+    try {
+      const introSeen =
+        sessionStorage.getItem("cap_intro_seen") === "true" ||
+        document.documentElement.classList.contains("cap-intro-bypass") ||
+        Boolean(window.location.hash);
+      if (introSeen) {
+        document.documentElement.classList.add("cap-intro-bypass");
+        setGateMounted(false);
+        setEntryPhase("done");
+      }
+    } catch {
+      // Session storage access fallback
+    }
+  }, []);
   const videoRef = useRef<HTMLVideoElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
   const hasEntered = entryPhase === "revealing" || entryPhase === "done";
@@ -281,7 +298,26 @@ export default function Home() {
     }, 11200);
   };
 
+  const skipIntro = () => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+    }
+    if (videoRef.current) {
+      videoRef.current.pause();
+    }
+    try {
+      sessionStorage.setItem("cap_intro_seen", "true");
+      document.documentElement.classList.add("cap-intro-bypass");
+    } catch {}
+    setGateMounted(false);
+    setEntryPhase("done");
+  };
+
   const handlePlaybackFinished = () => {
+    try {
+      sessionStorage.setItem("cap_intro_seen", "true");
+      document.documentElement.classList.add("cap-intro-bypass");
+    } catch {}
     // Both video and audio have completed their full 10.7s cinematic intro.
     // Reveal website hero interface smoothly!
     setEntryPhase((current) => (current !== "done" ? "revealing" : current));
@@ -290,10 +326,7 @@ export default function Home() {
   useEffect(() => {
     const handleKeyDown = (e: globalThis.KeyboardEvent) => {
       if (e.key === "Escape" && entryPhase !== "done") {
-        if (audioRef.current) audioRef.current.pause();
-        if (videoRef.current) videoRef.current.pause();
-        setGateMounted(false);
-        setEntryPhase("done");
+        skipIntro();
       }
     };
     window.addEventListener("keydown", handleKeyDown);
@@ -604,6 +637,14 @@ export default function Home() {
       {/* Video layer: plays full flythrough and seamlessly lands on pristine artwork */}
       {entryPhase !== "done" && (
         <div className={`entry-video-container video-layer ${entryPhase === "revealing" ? "video-layer--leaving" : ""}`}>
+          <button
+            type="button"
+            className="video-skip-btn"
+            onClick={skipIntro}
+            aria-label="Skip intro"
+          >
+            SKIP INTRO
+          </button>
           <video
             ref={videoRef}
             src="/videos/doomsday-intro-full.mp4"

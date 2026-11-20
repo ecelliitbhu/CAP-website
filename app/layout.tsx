@@ -36,7 +36,15 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     <html
       lang="en"
       className={`${playfair.variable} ${playfairItalic.variable} ${manrope.variable}`}
+      suppressHydrationWarning
     >
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `try{if(sessionStorage.getItem("cap_intro_seen")==="true"||window.location.hash){document.documentElement.classList.add("cap-intro-bypass");}}catch(e){}`,
+          }}
+        />
+      </head>
       <body>{children}</body>
     </html>
   );

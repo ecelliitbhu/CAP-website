@@ -2181,27 +2181,20 @@ export class DrizzleRepository implements SubmissionsRepository {
         throw new ApiError(404, "NOT_FOUND", "Participant was not found.");
       }
 
-      if (!params.reason || params.reason.trim().length < 10) {
-        throw new ApiError(
-          422,
-          "REASON_REQUIRED",
-          "Score adjustment requires a reason of at least 10 characters."
-        );
-      }
-
       if (!Number.isInteger(params.pointsDelta) || params.pointsDelta === 0) {
         throw new ApiError(422, "INVALID_POINTS_DELTA", "Points delta must be a non-zero integer.");
       }
 
       const id = params.requestId || crypto.randomUUID();
       const now = new Date();
+      const cleanReason = params.reason ? params.reason.trim() : null;
 
       await txRepo.db.insert(schema.scoreAdjustments).values({
         id,
         participantId: part.id,
         submissionId: params.submissionId || null,
         pointsDelta: params.pointsDelta,
-        reason: params.reason.trim(),
+        reason: cleanReason,
         adjustedBy: actor.id,
         adjustedAt: now,
       });
@@ -2213,7 +2206,7 @@ export class DrizzleRepository implements SubmissionsRepository {
         action: "score_adjustment",
         oldValue: { totalPoints: part.totalPoints },
         newValue: { totalPoints: part.totalPoints + params.pointsDelta, delta: params.pointsDelta },
-        reason: params.reason.trim(),
+        reason: cleanReason,
         changedBy: actor.id,
         requestId: params.requestId,
       });
@@ -2226,7 +2219,7 @@ export class DrizzleRepository implements SubmissionsRepository {
         participantName: part.name,
         submissionId: params.submissionId || null,
         pointsDelta: params.pointsDelta,
-        reason: params.reason.trim(),
+        reason: cleanReason,
         adjustedBy: actor.id,
         adjustedByName: actor.name,
         adjustedAt: now.toISOString(),
@@ -2301,17 +2294,17 @@ export class DrizzleRepository implements SubmissionsRepository {
   public async registerParticipant(input: RegisterParticipantInput): Promise<Participant> {
     return this.runInTx(async (txRepo) => {
       const email = input.email.trim().toLowerCase();
-      const rollNumber = input.rollNumber.trim().toUpperCase();
+      const rollNumber = input.rollNumber ? input.rollNumber.trim().toUpperCase() : null;
+
+      const conditions = [ilike(schema.participants.email, email)];
+      if (rollNumber) {
+        conditions.push(ilike(schema.participants.rollNumber, rollNumber));
+      }
 
       const existing = await txRepo.db
         .select()
         .from(schema.participants)
-        .where(
-          or(
-            ilike(schema.participants.email, email),
-            ilike(schema.participants.rollNumber, rollNumber)
-          )
-        )
+        .where(or(...conditions))
         .limit(1);
 
       if (existing.length > 0) {
@@ -2327,7 +2320,7 @@ export class DrizzleRepository implements SubmissionsRepository {
         name: input.name.trim(),
         email,
         college: input.college.trim(),
-        rollNumber,
+        rollNumber: rollNumber || null,
         branch: input.branch?.trim() || null,
         year: input.year?.trim() || null,
         phone: input.phone?.trim() || null,
@@ -2343,7 +2336,7 @@ export class DrizzleRepository implements SubmissionsRepository {
         name: input.name.trim(),
         email,
         college: input.college.trim(),
-        rollNumber,
+        rollNumber: rollNumber || "",
         totalPoints: 0,
         rank: nextNum,
       };
@@ -2356,6 +2349,7 @@ export class DrizzleRepository implements SubmissionsRepository {
       throw new ApiError(404, "NOT_FOUND", "Participant was not found.");
     }
 
+    await this.autoPublishScheduledTasks();
     const tasksRows = await this.db.select().from(schema.tasks).orderBy(schema.tasks.title);
     const now = new Date();
 
@@ -2985,7 +2979,25 @@ export class DrizzleRepository implements SubmissionsRepository {
   // Central Task Store & Task-wise reporting (PRD §6.2 D & §9.7)
   // ──────────────────────────────────────────────────────────────────────────
 
+  private async autoPublishScheduledTasks(): Promise<void> {
+    try {
+      await this.db
+        .update(schema.tasks)
+        .set({ state: "Live" })
+        .where(
+          and(
+            eq(schema.tasks.state, "Scheduled"),
+            isNotNull(schema.tasks.scheduledAt),
+            lte(schema.tasks.scheduledAt, new Date())
+          )
+        );
+    } catch {
+      // safe fallback
+    }
+  }
+
   public async listTasks(state?: string): Promise<Task[]> {
+    await this.autoPublishScheduledTasks();
     let q = this.db.select().from(schema.tasks);
     if (state && state !== "all") {
       q = q.where(eq(schema.tasks.state, state));
@@ -3014,6 +3026,7 @@ export class DrizzleRepository implements SubmissionsRepository {
       type: t.type,
       maxPoints: t.maxPoints,
       deadline: t.deadline.toISOString(),
+      scheduledAt: t.scheduledAt?.toISOString?.() ?? undefined,
       graceMinutes: t.graceMinutes,
       penaltyRate: t.penaltyRate,
       penaltyCap: t.penaltyCap,
@@ -3029,6 +3042,7 @@ export class DrizzleRepository implements SubmissionsRepository {
   }
 
   public async getTaskById(id: string): Promise<Task | null> {
+    await this.autoPublishScheduledTasks();
     const [t] = await this.db.select().from(schema.tasks).where(eq(schema.tasks.id, id));
     if (!t) return null;
     const [assigned] = await this.db
@@ -3041,6 +3055,7 @@ export class DrizzleRepository implements SubmissionsRepository {
       type: t.type,
       maxPoints: t.maxPoints,
       deadline: t.deadline.toISOString(),
+      scheduledAt: t.scheduledAt?.toISOString?.() ?? undefined,
       graceMinutes: t.graceMinutes,
       penaltyRate: t.penaltyRate,
       penaltyCap: t.penaltyCap,
@@ -3058,6 +3073,7 @@ export class DrizzleRepository implements SubmissionsRepository {
   public async createTask(params: CreateTaskParams, actor: AdminUser): Promise<Task> {
     const id = `task-${Date.now()}`;
     const deadline = new Date(params.deadline);
+    const scheduledAt = params.scheduledAt ? new Date(params.scheduledAt) : null;
     const [row] = await this.db
       .insert(schema.tasks)
       .values({
@@ -3068,6 +3084,7 @@ export class DrizzleRepository implements SubmissionsRepository {
         maxPoints: params.maxPoints,
         assignedTo: params.assignedTo || "all",
         deadline,
+        scheduledAt,
         graceMinutes: params.graceMinutes ?? 60,
         penaltyRate: params.penaltyRate ?? 10,
         penaltyCap: params.penaltyCap ?? 50,
@@ -3122,6 +3139,7 @@ export class DrizzleRepository implements SubmissionsRepository {
     if (patch.type !== undefined) updateValues.type = patch.type;
     if (patch.maxPoints !== undefined) updateValues.maxPoints = patch.maxPoints;
     if (patch.deadline !== undefined) updateValues.deadline = new Date(patch.deadline);
+    if (patch.scheduledAt !== undefined) updateValues.scheduledAt = patch.scheduledAt ? new Date(patch.scheduledAt) : null;
     if (patch.graceMinutes !== undefined) updateValues.graceMinutes = patch.graceMinutes;
     if (patch.penaltyRate !== undefined) updateValues.penaltyRate = patch.penaltyRate;
     if (patch.penaltyCap !== undefined) updateValues.penaltyCap = patch.penaltyCap;
