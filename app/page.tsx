@@ -176,6 +176,7 @@ export default function Home() {
 
   // Check session storage on mount: if user has already entered or visited with deep link, bypass intro
   useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | undefined;
     try {
       const introSeen =
         sessionStorage.getItem("cap_intro_seen") === "true" ||
@@ -183,12 +184,17 @@ export default function Home() {
         Boolean(window.location.hash);
       if (introSeen) {
         document.documentElement.classList.add("cap-intro-bypass");
-        setGateMounted(false);
-        setEntryPhase("done");
+        timer = setTimeout(() => {
+          setGateMounted(false);
+          setEntryPhase("done");
+        }, 0);
       }
     } catch {
       // Session storage access fallback
     }
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
   }, []);
   const videoRef = useRef<HTMLVideoElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
